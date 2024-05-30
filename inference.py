@@ -3,20 +3,21 @@ import json
 from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from torch import bfloat16
+from pathlib import Path
 
 model_name = "mistralai/Mistral-7B-Instruct-v0.2"
-model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 
-tokenizer = AutoTokenizer.from_pretrained(model_name)
+tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left")
 tokenizer.pad_token_id = tokenizer.eos_token_id
 model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", torch_dtype=bfloat16)
-batch_size = 4
-max_batches = 2
+batch_size = 32
 
 n_shots = 1
 lang_pair = "de-en"
-few_shot_dataset_name = "wmt22"
+few_shot_dataset_name = "wmt21"
 test_dataset_name = "wmt22"
+out_path = Path(f"outputs/{test_dataset_name}_{lang_pair}_{few_shot_dataset_name}_{n_shots}shot.json")
+out_path.parent.mkdir(exist_ok=True)
 
 source_lang, target_lang = lang_pair.split("-")
 prompt = f"Translate this from {LANG_TABLE[source_lang]} to {LANG_TABLE[target_lang]}:\n"
@@ -34,22 +35,19 @@ with open(f"datasets/{test_dataset_name}_{lang_pair}.json") as f:
 
 output = []
 for i in tqdm(range(0, len(test_dataset), batch_size)):
-    if i/batch_size >= max_batches:
-        break
     batch = test_dataset[i:i + batch_size]
     messages2d = []
     for sample in batch:
         sample_prompt = [{"role": "user", "content": prompt+sample["source"]}]
         messages2d.append(few_shot_prompt+sample_prompt)
     model_inputs = tokenizer.apply_chat_template(messages2d, padding=True, return_tensors="pt", tokenize=True, add_generation_prompt=True)
-    # print(model_inputs)
+    input_sequence_len = model_inputs.shape[1]
+
     generation = model.generate(model_inputs.to("cuda"), max_new_tokens=512, pad_token_id=tokenizer.eos_token_id, return_dict_in_generate=True)
-    # tuple generation["attentions"]
-    decoded = tokenizer.batch_decode(generation.sequences, skip_special_tokens=True,)
-    translations = [x.split("[/INST]")[-1].lstrip() for x in decoded]
-    for translation, sample in zip(translations, batch):
+    new_tokens = generation.sequences[:, input_sequence_len:]
+    decoded = tokenizer.batch_decode(new_tokens, skip_special_tokens=True,)
+    for translation, sample in zip(decoded, batch):
         output.append(dict(source=sample["source"], target=sample["target"], translation=translation))
 
-    with open(f"outputs/{lang_pair}_{n_shots}shot_handwritten.json", "w") as f:
+    with open(out_path, "w") as f:
         json.dump(output, f, indent=1)
-# use different folder

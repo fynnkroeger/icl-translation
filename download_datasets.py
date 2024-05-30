@@ -5,7 +5,7 @@ from pathlib import Path
 overwrite = False
 Path("datasets").mkdir(exist_ok=True)
 
-for dataset in ["wmt22", "wmt23"]:
+for dataset in ["wmt21", "wmt22", "wmt23"]:
     for lang_pair in ["en-de", "de-en"]:
         out_path = Path(f"datasets/{dataset}_{lang_pair}.json")
         if out_path.exists() and not overwrite:
