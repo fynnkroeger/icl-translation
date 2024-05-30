@@ -12,11 +12,14 @@ tokenizer.pad_token_id = tokenizer.eos_token_id
 model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", torch_dtype=bfloat16)
 batch_size = 32
 
-n_shots = 1
+n_shots = 0
 lang_pair = "de-en"
 few_shot_dataset_name = "wmt21"
 test_dataset_name = "wmt22"
-out_path = Path(f"outputs/{test_dataset_name}_{lang_pair}_{few_shot_dataset_name}_{n_shots}shot.json")
+if few_shot_dataset_name and n_shots:
+    out_path = Path(f"outputs/{test_dataset_name}_{lang_pair}_{n_shots}shot_{few_shot_dataset_name}.json")
+else:
+    out_path = Path(f"outputs/{test_dataset_name}_{lang_pair}_0shot.json")
 out_path.parent.mkdir(exist_ok=True)
 
 source_lang, target_lang = lang_pair.split("-")
