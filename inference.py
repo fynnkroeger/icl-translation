@@ -1,23 +1,26 @@
-# from translate_instruct import translate_batch
-from ALMA.utils.utils import LANG_TABLE
+from utils import LANG_TABLE
 import json
 from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from torch import bfloat16
 
 model_name = "mistralai/Mistral-7B-Instruct-v0.2"
+model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 tokenizer.pad_token_id = tokenizer.eos_token_id
 model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", torch_dtype=bfloat16)
-batch_size = 128
-max_batches = 1000
+batch_size = 4
+max_batches = 2
 
 n_shots = 1
 lang_pair = "de-en"
+few_shot_dataset_name = "wmt22"
+test_dataset_name = "wmt22"
 
 source_lang, target_lang = lang_pair.split("-")
 prompt = f"Translate this from {LANG_TABLE[source_lang]} to {LANG_TABLE[target_lang]}:\n"
-with open(f"wmtdatasets/handwritten_{lang_pair}.json") as f:
+with open(f"datasets/{few_shot_dataset_name}_{lang_pair}.json") as f:
     few_shot_dataset = json.load(f)
 
 few_shot_prompt = []
@@ -26,7 +29,7 @@ for i in range(n_shots):
     few_shot_prompt.append(dict(role="user", content=prompt+sample["source"]))
     few_shot_prompt.append(dict(role="assistant", content=sample["target"]))
 
-with open(f"wmtdatasets/wmt22_{lang_pair}.json") as f:
+with open(f"datasets/{test_dataset_name}_{lang_pair}.json") as f:
     test_dataset = json.load(f)
 
 output = []
