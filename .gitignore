@@ -3,6 +3,8 @@ outputs/
 .idea/
 plots/
 sorted_out/
+sorted_out_old/
+outputs_old/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

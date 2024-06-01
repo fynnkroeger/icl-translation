@@ -145,7 +145,7 @@ if __name__ == "__main__":
             n_shots=n_shots,
             few_shot_dataset_name="wmt21",
             test_dataset_name="wmt22",
-            out_dir=Path("outputs2"),
+            out_dir=Path("outputs"),
             run_name=run_name,
             model=model,
             tokenizer=tokenizer,
