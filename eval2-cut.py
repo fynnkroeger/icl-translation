@@ -1,14 +1,19 @@
 from pathlib import Path
 import json
 import sacrebleu
-import seaborn as sns
-import matplotlib.pyplot as plt
-import numpy as np
 
 Path("sorted_out").mkdir(exist_ok=True)
 
-plot_data = {}
+# hierarchichal structure for different datasets/evals?
+eval_output = {}
+if (eval_file := Path("sorted_out/evals.json")).exists():
+    eval_output = json.loads(eval_file.read_text())
+new_eval = False
 for path in sorted(Path("outputs").iterdir()):
+    if path.name in eval_output:
+        continue
+    new_eval = True
+
     output = json.loads(path.read_text())
     references = [[d["target"] for d in output]]
     translations = [d["translation"].split("\n")[0] for d in output]
@@ -17,9 +22,10 @@ for path in sorted(Path("outputs").iterdir()):
     bleu = sacrebleu.metrics.BLEU(trg_lang=target_lang)
     chrf = sacrebleu.metrics.CHRF(word_order=2)
     print(path.name, len(translations))
-    print(bleu.corpus_score(translations, references))
-    print(chrf.corpus_score(translations, references))
+    print(bs := bleu.corpus_score(translations, references))
+    print(cs := chrf.corpus_score(translations, references))
     print()
+    eval_output[path.name] = dict(chrf=cs.score, bleu=bs.score)
 
     bleu1 = sacrebleu.metrics.BLEU(trg_lang=target_lang, effective_order=True)
     chrf1 = sacrebleu.metrics.CHRF(word_order=2)
@@ -30,15 +36,11 @@ for path in sorted(Path("outputs").iterdir()):
         out.update(translation=trans, chrf=chrf, bleu=bleu, index=i)
         scored.append(out)
     scored.sort(key=lambda d: d["chrf"])
-    plot_data[path.stem] = np.array([s["chrf"] for s in scored])
 
     with open(f"sorted_out/{path.name}", "w") as f:
         json.dump(scored, f, indent=1)
 
-
-Path("plots").mkdir(exist_ok=True)
-sns.kdeplot(plot_data)
-plt.savefig("plots/kde.png", dpi=300)
-plt.figure()
-sns.kdeplot(plot_data, cumulative=True)
-plt.savefig("plots/kde_cumulative.png", dpi=300)
+if new_eval:
+    with open(eval_file, "w") as f:
+        sorted_evals = dict(sorted([(k, v) for k, v in eval_output.items()]))
+        json.dump(sorted_evals, f, indent=1)
