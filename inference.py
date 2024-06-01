@@ -5,6 +5,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from torch import bfloat16
 from pathlib import Path
 import random
+import string
 
 
 def translate(
@@ -12,13 +13,14 @@ def translate(
     n_shots,
     few_shot_dataset_name,
     test_dataset_name,
+    run_name,
     model,
     tokenizer,
     batch_size,
 ):
     source_lang, target_lang = lang_pair.split("-")
-    prompt = f"Translate this from {LANG_TABLE[source_lang]} to {LANG_TABLE[target_lang]}:\n"
-    one_message = 1
+    prompt = f"Translate this from {LANG_TABLE[source_lang]} to {LANG_TABLE[target_lang]}. Respond only with the translation.\n"
+    one_message = 0
 
     if few_shot_dataset_name and n_shots:
         with open(f"datasets/{few_shot_dataset_name}_{lang_pair}.json") as f:
@@ -46,10 +48,12 @@ def translate(
                 few_shot_prompt_messages.append(dict(role="assistant", content=sample["target"]))
 
         out_path = Path(
-            f"outputs/{test_dataset_name}_{lang_pair}_{n_shots}shot_{few_shot_dataset_name}_rand{'_'+str(one_message) if one_message else ''}.json"
+            f"outputs/{test_dataset_name}_{lang_pair}_{n_shots}shot_{few_shot_dataset_name}_rand{'_'+str(one_message) if one_message else ''}_{run_name}.json"
         )
     else:
-        out_path = Path(f"outputs/{test_dataset_name}_{lang_pair}_0shot.json")
+        one_message = 0
+        few_shot_prompt_messages = []
+        out_path = Path(f"outputs/{test_dataset_name}_{lang_pair}_0shot_{run_name}.json")
     print(out_path)
     out_path.parent.mkdir(exist_ok=True)
 
@@ -83,7 +87,7 @@ def translate(
                 sample_prompt_message = [{"role": "user", "content": prompt + sample["source"]}]
                 messages2d.append(few_shot_prompt_messages + sample_prompt_message)
         if i == 0:
-            print(messages2d[0])
+            print(prompt_log := messages2d[0])
         model_inputs = tokenizer.apply_chat_template(
             messages2d,
             padding=True,
@@ -112,10 +116,17 @@ def translate(
                     translation=translation,
                 )
             )
-            print(output[-1])
 
-        with open(out_path, "w") as f:
-            json.dump(output, f, indent=1)
+    with open(out_path, "w") as f:
+        json.dump(output, f, indent=1)
+
+    logs = {}
+    if (log_file := Path("outputs/logs.json")).exists():
+        logs = json.loads(log_file.read_text())
+    logs[out_path.name] = dict(prompt=prompt_log)
+    with open(log_file, "w") as f:
+        sorted_logs = dict(sorted([(k, v) for k, v in logs.items()]))
+        json.dump(sorted_logs, f, indent=1)
 
 
 if __name__ == "__main__":
@@ -126,13 +137,16 @@ if __name__ == "__main__":
         model_name, device_map="auto", torch_dtype=bfloat16, attn_implementation="sdpa"
     )
     print("instatiated model")
-
-    translate(
-        lang_pair="de-en",
-        n_shots=4,
-        few_shot_dataset_name="wmt21",
-        test_dataset_name="wmt22",
-        model=model,
-        tokenizer=tokenizer,
-        batch_size=8,
-    )
+    run_name = "".join(random.choices(string.ascii_uppercase, k=5))
+    print("starting run", run_name)
+    for n_shots in 1, 4:
+        translate(
+            lang_pair="de-en",
+            n_shots=n_shots,
+            few_shot_dataset_name="wmt21",
+            test_dataset_name="wmt22",
+            run_name=run_name,
+            model=model,
+            tokenizer=tokenizer,
+            batch_size=8,
+        )
