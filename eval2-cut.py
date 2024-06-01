@@ -25,7 +25,8 @@ for path in sorted(Path("outputs").iterdir()):
     print(bs := bleu.corpus_score(translations, references))
     print(cs := chrf.corpus_score(translations, references))
     print()
-    eval_output[path.name] = dict(chrf=cs.score, bleu=bs.score)
+    logs = json.loads(Path("outputs/logs.json").read_text())
+    eval_output[path.name] = dict(**logs[path.name], chrf=cs.score, bleu=bs.score)
 
     bleu1 = sacrebleu.metrics.BLEU(trg_lang=target_lang, effective_order=True)
     chrf1 = sacrebleu.metrics.CHRF(word_order=2)

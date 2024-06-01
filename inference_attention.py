@@ -9,7 +9,9 @@ model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 model_name = "mistralai/Mistral-7B-Instruct-v0.2"
 tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left")
 tokenizer.pad_token_id = tokenizer.eos_token_id
-model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", torch_dtype=bfloat16, attn_implementation="eager")
+model = AutoModelForCausalLM.from_pretrained(
+    model_name, device_map="auto", torch_dtype=bfloat16, attn_implementation="eager"
+)
 batch_size = 1
 max_batches = 4
 
@@ -24,7 +26,7 @@ with open(f"wmtdatasets/wmt23_{lang_pair}.json") as f:
 few_shot_prompt = []
 for i in range(n_shots):
     sample = few_shot_dataset[i]
-    few_shot_prompt.append(dict(role="user", content=prompt+sample["source"]))
+    few_shot_prompt.append(dict(role="user", content=prompt + sample["source"]))
     few_shot_prompt.append(dict(role="assistant", content=sample["target"]))
 
 with open(f"wmtdatasets/wmt22_{lang_pair}.json") as f:
@@ -34,20 +36,28 @@ output = []
 attentions = []
 tokens = []
 for i in range(0, len(test_dataset), batch_size):
-    if i/batch_size >= max_batches:
+    if i / batch_size >= max_batches:
         break
-    batch = test_dataset[i:i + batch_size]
+    batch = test_dataset[i : i + batch_size]
     messages2d = []
     for sample in batch:
-        sample_prompt = [{"role": "user", "content": prompt+sample["source"]}]
-        messages2d.append(few_shot_prompt+sample_prompt)
-    model_inputs = tokenizer.apply_chat_template(messages2d, padding=True, return_tensors="pt", tokenize=True, add_generation_prompt=True)
+        sample_prompt = [{"role": "user", "content": prompt + sample["source"]}]
+        messages2d.append(few_shot_prompt + sample_prompt)
+    model_inputs = tokenizer.apply_chat_template(
+        messages2d, padding=True, return_tensors="pt", tokenize=True, add_generation_prompt=True
+    )
     input_seq_len = model_inputs.shape[1]
     print(input_seq_len)
-    generation = model.generate(model_inputs.to("cuda"), max_new_tokens=300, pad_token_id=tokenizer.eos_token_id, output_attentions=True, return_dict_in_generate=True)
+    generation = model.generate(
+        model_inputs.to("cuda"),
+        max_new_tokens=300,
+        pad_token_id=tokenizer.eos_token_id,
+        output_attentions=True,
+        return_dict_in_generate=True,
+    )
     batch_size_actual, seq_len = generation.sequences.shape
     print(seq_len)
-    new_tokens = seq_len-input_seq_len
+    new_tokens = seq_len - input_seq_len
     num_heads = 32
     layers = len(generation.attentions[0])
     unified_attention = np.zeros((layers, batch_size_actual, num_heads, seq_len, seq_len))
@@ -62,7 +72,13 @@ for i in range(0, len(test_dataset), batch_size):
                 layer = layer.detach().cpu().to(float16).numpy().squeeze()
                 if batch_size_actual > 1:
                     layer = layer[batch_index]
-                unified_attention[layer_num, batch_index, :, token_index+input_seq_len, :token_index+input_seq_len+1] = layer
+                unified_attention[
+                    layer_num,
+                    batch_index,
+                    :,
+                    token_index + input_seq_len,
+                    : token_index + input_seq_len + 1,
+                ] = layer
     # np.save(f"outputs/{lang_pair}_{n_shots}shot_attention2.npy", unified_attention)
     attentions.append(unified_attention)
     tokens_BL = [[] for _ in range(batch_size_actual)]
@@ -82,7 +98,9 @@ for i in range(0, len(test_dataset), batch_size):
     translations = [x.split("[/INST]")[-1].lstrip() for x in decoded]
     # todo better cutting
     for translation, sample in zip(translations, batch):
-        output.append(dict(source=sample["source"], target=sample["target"], translation=translation))
+        output.append(
+            dict(source=sample["source"], target=sample["target"], translation=translation)
+        )
 
     # write here so we dont loose progress
     with open(f"outputs/{lang_pair}_{n_shots}shot_handwritten.json", "w") as f:

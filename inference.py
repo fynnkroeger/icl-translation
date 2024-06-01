@@ -32,7 +32,10 @@ def translate(
         random.shuffle(few_shot_dataset)
         few_shot_examples = few_shot_dataset[:n_shots]
 
-        out_path = out_dir / f"{test_dataset_name}_{lang_pair}_{n_shots:02d}shot_{few_shot_dataset_name}_{run_name}.json"
+        out_path = (
+            out_dir
+            / f"{test_dataset_name}_{lang_pair}_{n_shots:02d}shot_{few_shot_dataset_name}_{run_name}.json"
+        )
     else:
         few_shot_examples = []
         out_path = out_dir / f"{test_dataset_name}_{lang_pair}_00shot_{run_name}.json"
@@ -46,7 +49,9 @@ def translate(
         batch = test_dataset[i : i + batch_size]
         messages2d = []
         for sample in batch:
-            formatted = prompt_formatter(few_shot_examples, sample["source"], source_lang, target_lang)
+            formatted = prompt_formatter(
+                few_shot_examples, sample["source"], source_lang, target_lang
+            )
             messages2d.append(formatted)
         if i == 0:
             print(prompt_log := messages2d[0])
@@ -95,14 +100,14 @@ def translate(
 
 
 def format_multi_message(few_shot_examples, source, source_lang, target_lang):
-    prompt = f"Translate this from {source_lang} to {target_lang}. Respond only with the translation.\n"
+    prompt = (
+        f"Translate this from {source_lang} to {target_lang}. Respond only with the translation.\n"
+    )
     messages = []
     for sample in few_shot_examples:
-        messages.append(
-            dict(role="user", content=prompt + sample["source"])
-        )
+        messages.append(dict(role="user", content=prompt + sample["source"]))
         messages.append(dict(role="assistant", content=sample["target"]))
-    return messages+[{"role": "user", "content": prompt+source}]
+    return messages + [{"role": "user", "content": prompt + source}]
 
 
 def format_single_message_prompt_arrow(few_shot_examples, source, source_lang, target_lang):
@@ -114,8 +119,10 @@ def format_single_message_prompt_arrow(few_shot_examples, source, source_lang, t
     else:
         few_prompt = ""
     # consider / using examples, ...
-    prompt = f"Translate this from {source_lang} to {target_lang}. Respond only with the translation.\n"
-    return [{"role": "user", "content": few_prompt+prompt+source}]
+    prompt = (
+        f"Translate this from {source_lang} to {target_lang}. Respond only with the translation.\n"
+    )
+    return [{"role": "user", "content": few_prompt + prompt + source}]
 
 
 def format_single_message_arrow(few_shot_examples, source, source_lang, target_lang):
@@ -124,7 +131,7 @@ def format_single_message_arrow(few_shot_examples, source, source_lang, target_l
     few_prompt = ""
     for sample in few_shot_examples:
         few_prompt += f"{sample['source']} -> {sample['target']}\n"
-    return [{"role": "user", "content": few_prompt+f"{source} -> "}]
+    return [{"role": "user", "content": few_prompt + f"{source} -> "}]
 
 
 def format_single_message_labeled(few_shot_examples, source, source_lang, target_lang):
@@ -132,7 +139,7 @@ def format_single_message_labeled(few_shot_examples, source, source_lang, target
     for sample in few_shot_examples:
         few_prompt += f"{LANG_TABLE[source_lang]}: {sample['source']}\n{LANG_TABLE[target_lang]}: {sample['target']}\n\n"
     prompt = f"{LANG_TABLE[source_lang]}: {source}\n{LANG_TABLE[target_lang]}: "
-    return [{"role": "user", "content": few_prompt+prompt}]
+    return [{"role": "user", "content": few_prompt + prompt}]
 
 
 if __name__ == "__main__":

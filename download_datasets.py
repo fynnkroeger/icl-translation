@@ -11,8 +11,12 @@ for dataset in ["wmt21", "wmt22", "wmt23"]:
         if out_path.exists() and not overwrite:
             continue
         output = []
-        src = subprocess.run(f"sacrebleu -t {dataset} -l {lang_pair} --echo src", shell=True, capture_output=True)
-        trgt = subprocess.run(f"sacrebleu -t {dataset} -l {lang_pair} --echo ref", shell=True, capture_output=True)
+        src = subprocess.run(
+            f"sacrebleu -t {dataset} -l {lang_pair} --echo src", shell=True, capture_output=True
+        )
+        trgt = subprocess.run(
+            f"sacrebleu -t {dataset} -l {lang_pair} --echo ref", shell=True, capture_output=True
+        )
         src_lines = src.stdout.decode().splitlines()
         trgt_lines = trgt.stdout.decode().splitlines()
         for source, target in zip(src_lines, trgt_lines, strict=True):
