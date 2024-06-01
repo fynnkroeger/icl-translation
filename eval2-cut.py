@@ -10,7 +10,7 @@ if (eval_file := Path("sorted_out/evals.json")).exists():
     eval_output = json.loads(eval_file.read_text())
 new_eval = False
 for path in sorted(Path("outputs").iterdir()):
-    if path.name in eval_output:
+    if path.name in eval_output or "logs" in path.name:
         continue
     new_eval = True
 

@@ -13,6 +13,7 @@ def translate(
     n_shots,
     few_shot_dataset_name,
     test_dataset_name,
+    out_dir,
     run_name,
     model,
     tokenizer,
@@ -47,15 +48,13 @@ def translate(
                 )
                 few_shot_prompt_messages.append(dict(role="assistant", content=sample["target"]))
 
-        out_path = Path(
-            f"outputs/{test_dataset_name}_{lang_pair}_{n_shots}shot_{few_shot_dataset_name}_rand{'_'+str(one_message) if one_message else ''}_{run_name}.json"
-        )
+        out_path = out_dir / f"{test_dataset_name}_{lang_pair}_{n_shots}shot_{few_shot_dataset_name}{'_'+str(one_message) if one_message else ''}_{run_name}.json"
     else:
         one_message = 0
         few_shot_prompt_messages = []
-        out_path = Path(f"outputs/{test_dataset_name}_{lang_pair}_0shot_{run_name}.json")
-    print(out_path)
-    out_path.parent.mkdir(exist_ok=True)
+        out_path = out_dir / f"{test_dataset_name}_{lang_pair}_0shot_{run_name}.json"
+    print(f"writing output to {out_path} at the end")
+    out_dir.mkdir(exist_ok=True)
 
     with open(f"datasets/{test_dataset_name}_{lang_pair}.json") as f:
         test_dataset = json.load(f)
@@ -120,6 +119,7 @@ def translate(
     with open(out_path, "w") as f:
         json.dump(output, f, indent=1)
 
+    # todo what to log, what into filename
     logs = {}
     if (log_file := Path("outputs/logs.json")).exists():
         logs = json.loads(log_file.read_text())
@@ -145,6 +145,7 @@ if __name__ == "__main__":
             n_shots=n_shots,
             few_shot_dataset_name="wmt21",
             test_dataset_name="wmt22",
+            out_dir=Path("outputs2"),
             run_name=run_name,
             model=model,
             tokenizer=tokenizer,
