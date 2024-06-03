@@ -150,14 +150,14 @@ if __name__ == "__main__":
         model_name, device_map="auto", torch_dtype=bfloat16, attn_implementation="sdpa"
     )
     print("instatiated model")
-    for formatter in [format_single_message_prompt_arrow, format_multi_message]:
+    for formatter in [format_multi_message]:
         run_name = "".join(random.choices(string.ascii_uppercase, k=4))
         print("starting run", run_name)
 
-        for n_shots in [0, 1, 4]:
+        for n_shots in [1, 4]:
             translate(
                 test=False,
-                lang_pair="de-en",
+                lang_pair="en-de",
                 n_shots=n_shots,
                 prompt_formatter=formatter,
                 few_shot_dataset_name="wmt21",

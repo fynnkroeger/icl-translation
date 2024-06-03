@@ -3,7 +3,7 @@ import json
 import sacrebleu
 
 Path("sorted_out").mkdir(exist_ok=True)
-
+save = True
 # hierarchichal structure for different datasets/evals?
 eval_output = {}
 if (eval_file := Path("sorted_out/evals.json")).exists():
@@ -12,7 +12,6 @@ new_eval = False
 for path in sorted(Path("outputs").iterdir()):
     if path.name in eval_output or "logs" in path.name:
         continue
-    new_eval = True
 
     output = json.loads(path.read_text())
     references = [[d["target"] for d in output]]
@@ -25,6 +24,9 @@ for path in sorted(Path("outputs").iterdir()):
     print(bs := bleu.corpus_score(translations, references))
     print(cs := chrf.corpus_score(translations, references))
     print()
+    if not save:
+        continue
+    new_eval = True
     logs = json.loads(Path("outputs/logs.json").read_text())
     eval_output[path.name] = dict(**logs[path.name], chrf=cs.score, bleu=bs.score)
 
