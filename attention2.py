@@ -52,7 +52,7 @@ if __name__ == "__main__":
         model_name, device_map="auto", torch_dtype=bfloat16, attn_implementation="eager"
     )
     print("instatiated model")
-    for formatter in [format_single_message_arrow]:
+    for formatter in [format_single_message_labeled]:
         run_name = "".join(random.choices(string.ascii_uppercase, k=4))
         print("starting run", run_name)
 
@@ -69,6 +69,6 @@ if __name__ == "__main__":
                 model=model,
                 tokenizer=tokenizer,
                 batch_size=1,
-                n_batches=1,
+                n_batches=2,
                 attention_processor=save_attention_heatmap,
             )

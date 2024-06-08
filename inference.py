@@ -153,8 +153,8 @@ def format_single_message_arrow(few_shot_examples, source, source_lang, target_l
 def format_single_message_labeled(few_shot_examples, source, source_lang, target_lang):
     few_prompt = ""
     for sample in few_shot_examples:
-        few_prompt += f"{LANG_TABLE[source_lang]}: {sample['source']}\n{LANG_TABLE[target_lang]}: {sample['target']}\n\n"
-    prompt = f"{LANG_TABLE[source_lang]}: {source}\n{LANG_TABLE[target_lang]}: "
+        few_prompt += f"{source_lang}: {sample['source']}\n{target_lang}: {sample['target']}\n\n"
+    prompt = f"{source_lang}: {source}\n{target_lang}: "
     return [{"role": "user", "content": few_prompt + prompt}]
 
 
