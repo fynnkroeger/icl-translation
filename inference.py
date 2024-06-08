@@ -20,6 +20,8 @@ def translate(
     model,
     tokenizer,
     batch_size,
+    n_batches=None,
+    attention_processor=None,
 ):
     source_lang, target_lang = lang_pair.split("-")
     source_lang, target_lang = LANG_TABLE[source_lang], LANG_TABLE[target_lang]
@@ -46,6 +48,9 @@ def translate(
         test_dataset = json.load(f)
     output = []
     for i in tqdm(range(0, len(test_dataset), batch_size)):
+        if n_batches is not None and i >= n_batches:
+            test = True
+            break
         batch = test_dataset[i : i + batch_size]
         messages2d = []
         for sample in batch:
@@ -65,10 +70,21 @@ def translate(
         input_sequence_len = model_inputs.shape[1]
         generation = model.generate(
             model_inputs.to("cuda"),
-            max_new_tokens=512,
+            max_new_tokens=200,
             pad_token_id=tokenizer.eos_token_id,
             return_dict_in_generate=True,
+            output_attentions=attention_processor is not None,
         )
+        if attention_processor is not None:
+            assert batch_size == 1
+            seq_len = generation.sequences.shape[1]
+            input_seq_len = model_inputs.shape[1]
+            tokens = []
+            for s in range(seq_len):
+                tokens.append(tokenizer.batch_decode(generation.sequences[:, s])[0])
+            name = f"{out_path.stem}_{i:02d}"
+            attention_processor(generation.attentions, input_seq_len, seq_len, tokens, name)
+
         new_tokens = generation.sequences[:, input_sequence_len:]
         decoded = tokenizer.batch_decode(
             new_tokens,
@@ -146,6 +162,7 @@ if __name__ == "__main__":
     model_name = "mistralai/Mistral-7B-Instruct-v0.2"
     tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left")
     tokenizer.pad_token_id = tokenizer.eos_token_id
+    print("finished tokenizer init, on to model")
     model = AutoModelForCausalLM.from_pretrained(
         model_name, device_map="auto", torch_dtype=bfloat16, attn_implementation="sdpa"
     )
