@@ -199,7 +199,7 @@ if __name__ == "__main__":
         run_name = formatter.__name__
         for lang_pair in ["en-de", "de-en"]:
             for n_shots in [0, 1, 4]:
-                if "arrow" in run_name and n_shots == 0:
+                if "message_arrow" in run_name and n_shots == 0:
                     continue  # need a few shot example as we have no label
                 print(f"starting {run_name} {lang_pair} {n_shots:=} ")
                 translate(
