@@ -1,7 +1,10 @@
 from pathlib import Path
 import json
 import sacrebleu
+from comet import download_model, load_from_checkpoint
 
+model_path = download_model("Unbabel/wmt22-cometkiwi-da")
+comet_model = load_from_checkpoint(model_path)
 Path("sorted_out").mkdir(exist_ok=True)
 save = True
 # hierarchichal structure for different datasets/evals?
@@ -16,29 +19,38 @@ for path in sorted(Path("outputs").iterdir()):
     output = json.loads(path.read_text())
     references = [[d["target"] for d in output]]
     translations = [d["translation"].split("\n")[0] for d in output]
-
+    sources = [d["source"] for d in output]
     source_lang, target_lang = path.stem.split("_")[1].split("-")
     bleu = sacrebleu.metrics.BLEU(trg_lang=target_lang)
     chrf = sacrebleu.metrics.CHRF(word_order=2)
+    comet_score = comet_model.predict([dict(src=s, mt=t) for s, t in zip(sources, translations)])
+
     print(path.name, len(translations))
     print(bs := bleu.corpus_score(translations, references))
     print(cs := chrf.corpus_score(translations, references))
+    print(f"comet kiwi22 = {comet_score.system_score:.3f}")
     print()
     if not save:
         continue
     new_eval = True
     logs = json.loads(Path("outputs/logs.json").read_text())
-    eval_output[path.name] = dict(**logs[path.name], chrf=cs.score, bleu=bs.score)
+    eval_output[path.name] = dict(
+        **logs[path.name],
+        chrf=round(cs.score, 2),
+        bleu=round(bs.score, 2),
+        kiwi22=round(comet_score.system_score, 4),
+    )
 
     bleu1 = sacrebleu.metrics.BLEU(trg_lang=target_lang, effective_order=True)
     chrf1 = sacrebleu.metrics.CHRF(word_order=2)
     scored = []
     for i, (ref, trans, out) in enumerate(zip(references[0], translations, output)):
-        chrf = chrf1.sentence_score(trans, [ref]).score
-        bleu = bleu1.sentence_score(trans, [ref]).score
-        out.update(translation=trans, chrf=chrf, bleu=bleu, index=i)
+        chrf = round(chrf1.sentence_score(trans, [ref]).score, 2)
+        bleu = round(bleu1.sentence_score(trans, [ref]).score, 2)
+        kiwi22 = round(comet_score.scores[i], 4)
+        out.update(translation=trans, chrf=chrf, bleu=bleu, kiwi22=kiwi22, index=i)
         scored.append(out)
-    scored.sort(key=lambda d: d["chrf"])
+    scored.sort(key=lambda d: d["kiwi22"])
 
     with open(f"sorted_out/{path.name}", "w") as f:
         json.dump(scored, f, indent=1)
