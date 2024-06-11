@@ -46,6 +46,6 @@ def process_file(path, n_shots):
 if __name__ == "__main__":
     n_shots = 4
     for path in sorted(Path("attentions").iterdir()):
-        if path.suffix != ".npy":
+        if path.suffix != ".npy" or "SJ" not in path.stem:
             continue
         process_file(path, n_shots)

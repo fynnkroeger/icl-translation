@@ -75,6 +75,7 @@ def translate(
             return_dict_in_generate=True,
             output_attentions=attention_processor is not None,
         )
+        # add check for not cutting off?
         if attention_processor is not None:
             assert batch_size == 1
             seq_len = generation.sequences.shape[1]
@@ -150,6 +151,15 @@ def format_single_message_arrow(few_shot_examples, source, source_lang, target_l
     return [{"role": "user", "content": few_prompt + f"{source} -> "}]
 
 
+def format_single_message_arrow_oneline(few_shot_examples, source, source_lang, target_lang):
+    if not few_shot_examples:
+        raise NotImplementedError()
+    few_prompt = ""
+    for sample in few_shot_examples:
+        few_prompt += f"{sample['source']} -> {sample['target']} <END> "
+    return [{"role": "user", "content": few_prompt + f"{source} -> "}]
+
+
 def format_single_message_labeled(few_shot_examples, source, source_lang, target_lang):
     few_prompt = ""
     for sample in few_shot_examples:
@@ -167,21 +177,21 @@ if __name__ == "__main__":
         model_name, device_map="auto", torch_dtype=bfloat16, attn_implementation="sdpa"
     )
     print("instatiated model")
-    for formatter in [format_multi_message]:
+    for formatter in [format_single_message_arrow_oneline, format_single_message_arrow]:
         run_name = "".join(random.choices(string.ascii_uppercase, k=4))
         print("starting run", run_name)
-
-        for n_shots in [1, 4]:
-            translate(
-                test=False,
-                lang_pair="en-de",
-                n_shots=n_shots,
-                prompt_formatter=formatter,
-                few_shot_dataset_name="wmt21",
-                test_dataset_name="wmt22",
-                out_dir=Path("outputs"),
-                run_name=run_name,
-                model=model,
-                tokenizer=tokenizer,
-                batch_size=8,
-            )
+        for lang_pair in ["en-de", "de-en"]:
+            for n_shots in [1, 4]:
+                translate(
+                    test=False,
+                    lang_pair="en-de",
+                    n_shots=n_shots,
+                    prompt_formatter=formatter,
+                    few_shot_dataset_name="wmt21",
+                    test_dataset_name="wmt22",
+                    out_dir=Path("outputs"),
+                    run_name=run_name,
+                    model=model,
+                    tokenizer=tokenizer,
+                    batch_size=8,
+                )
