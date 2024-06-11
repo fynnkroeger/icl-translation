@@ -213,5 +213,6 @@ if __name__ == "__main__":
                     run_name=run_name,
                     model=model,
                     tokenizer=tokenizer,
-                    batch_size=8,
+                    batch_size=32,
+                    # n_batches=1,
                 )

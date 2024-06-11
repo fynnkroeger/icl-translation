@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 import sacrebleu
 from comet import download_model, load_from_checkpoint
+import re
 
 model_path = download_model("Unbabel/wmt22-cometkiwi-da")
 comet_model = load_from_checkpoint(model_path)
@@ -18,7 +19,11 @@ for path in sorted(Path("outputs").iterdir()):
 
     output = json.loads(path.read_text())
     references = [[d["target"] for d in output]]
-    translations = [d["translation"].split("\n")[0] for d in output]
+    translations = []
+    for sample in output:
+        pattern = r"\n|###" if "[" in sample["source"] else r"\n|###|\["
+        cut = re.split(pattern, sample["translation"], maxsplit=1)[0]
+        translations.append(cut.strip())
     sources = [d["source"] for d in output]
     source_lang, target_lang = path.stem.split("_")[1].split("-")
     bleu = sacrebleu.metrics.BLEU(trg_lang=target_lang)
@@ -36,9 +41,9 @@ for path in sorted(Path("outputs").iterdir()):
     logs = json.loads(Path("outputs/logs.json").read_text())
     eval_output[path.name] = dict(
         **logs[path.name],
+        kiwi22=round(comet_score.system_score, 4),
         chrf=round(cs.score, 2),
         bleu=round(bs.score, 2),
-        kiwi22=round(comet_score.system_score, 4),
     )
 
     bleu1 = sacrebleu.metrics.BLEU(trg_lang=target_lang, effective_order=True)
@@ -48,7 +53,7 @@ for path in sorted(Path("outputs").iterdir()):
         chrf = round(chrf1.sentence_score(trans, [ref]).score, 2)
         bleu = round(bleu1.sentence_score(trans, [ref]).score, 2)
         kiwi22 = round(comet_score.scores[i], 4)
-        out.update(translation=trans, chrf=chrf, bleu=bleu, kiwi22=kiwi22, index=i)
+        out.update(translation=trans, kiwi22=kiwi22, chrf=chrf, bleu=bleu, index=i)
         scored.append(out)
     scored.sort(key=lambda d: d["kiwi22"])
 
