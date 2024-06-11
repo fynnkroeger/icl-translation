@@ -8,7 +8,8 @@ import random
 import string
 
 
-no_newline_seperator = "<END>"
+no_newline_seperator = "###"
+
 
 def translate(
     test,
@@ -51,7 +52,6 @@ def translate(
     output = []
     for i in tqdm(range(0, len(test_dataset), batch_size)):
         if n_batches is not None and i >= n_batches:
-            test = True
             break
         batch = test_dataset[i : i + batch_size]
         messages2d = []
@@ -69,14 +69,17 @@ def translate(
             tokenize=True,
             add_generation_prompt=True,
         )
+        if i == 0:
+            print(tokenizer.batch_decode(model_inputs[0]))
         input_sequence_len = model_inputs.shape[1]
+        stop_strings = ["\n", no_newline_seperator] + ["["] if "[" not in sample["source"] else []
         generation = model.generate(
             model_inputs.to("cuda"),
             max_new_tokens=200,
             pad_token_id=tokenizer.eos_token_id,
             return_dict_in_generate=True,
             output_attentions=attention_processor is not None,
-            stopping_criteria=[StopStringCriteria(tokenizer, ["\n", no_newline_seperator])],
+            stopping_criteria=[StopStringCriteria(tokenizer, stop_strings)],
             tokenizer=tokenizer,
         )
         # add check for not cutting off?
@@ -110,11 +113,17 @@ def translate(
         with open(out_path, "w") as f:
             json.dump(output, f, indent=1)
 
-        # todo what to log, what into filename
         logs = {}
         if (log_file := Path("outputs/logs.json")).exists():
             logs = json.loads(log_file.read_text())
-        logs[out_path.name] = dict(prompt=prompt_log)
+        logs[out_path.name] = dict(
+            lang_pair=lang_pair,
+            n_shots=n_shots,
+            run_name=run_name,
+            prompt=prompt_log,
+            test_dataset=test_dataset_name,
+            few_shot_dataset_name=few_shot_dataset_name,
+        )
         with open(log_file, "w") as f:
             sorted_logs = dict(sorted([(k, v) for k, v in logs.items()]))
             json.dump(sorted_logs, f, indent=1)
@@ -181,13 +190,20 @@ if __name__ == "__main__":
         model_name, device_map="auto", torch_dtype=bfloat16, attn_implementation="sdpa"
     )
     print("instatiated model")
-    for formatter in [format_single_message_arrow_oneline, format_single_message_arrow]:
-        run_name = "".join(random.choices(string.ascii_uppercase, k=4))
-        print("starting run", run_name)
+    for formatter in [
+        format_single_message_arrow_oneline,
+        format_single_message_arrow,
+        format_single_message_prompt_arrow,
+        format_multi_message,
+    ]:
+        run_name = formatter.__name__
         for lang_pair in ["en-de", "de-en"]:
-            for n_shots in [1, 4]:
+            for n_shots in [0, 1, 4]:
+                if "arrow" in run_name and n_shots == 0:
+                    continue  # need a few shot example as we have no label
+                print(f"starting {run_name} {lang_pair} {n_shots:=} ")
                 translate(
-                    test=True,
+                    test=False,
                     lang_pair=lang_pair,
                     n_shots=n_shots,
                     prompt_formatter=formatter,
