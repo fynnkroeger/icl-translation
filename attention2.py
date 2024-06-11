@@ -28,7 +28,7 @@ def save_attention_heatmap(attentions, input_seq_len, seq_len, tokens, name):
     max_pooled = np.max(attention_matrix, axis=1)  # head dimension
 
     for index, token in enumerate(tokens[input_seq_len:], input_seq_len):
-        if "\n" in token or "</s>" == token:
+        if "\n" in token or "</s>" == token:  # add cutting at <END> and [
             max_pooled = max_pooled[:, :index, :index]
             tokens = tokens[:index]
             print("cutting off at", index)

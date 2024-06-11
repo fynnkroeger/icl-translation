@@ -184,7 +184,7 @@ if __name__ == "__main__":
             for n_shots in [1, 4]:
                 translate(
                     test=False,
-                    lang_pair="en-de",
+                    lang_pair=lang_pair,
                     n_shots=n_shots,
                     prompt_formatter=formatter,
                     few_shot_dataset_name="wmt21",
