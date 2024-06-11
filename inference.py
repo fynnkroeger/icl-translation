@@ -1,12 +1,14 @@
 from utils import LANG_TABLE
 import json
 from tqdm import tqdm
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, StopStringCriteria
 from torch import bfloat16
 from pathlib import Path
 import random
 import string
 
+
+no_newline_seperator = "<END>"
 
 def translate(
     test,
@@ -74,6 +76,8 @@ def translate(
             pad_token_id=tokenizer.eos_token_id,
             return_dict_in_generate=True,
             output_attentions=attention_processor is not None,
+            stopping_criteria=[StopStringCriteria(tokenizer, ["\n", no_newline_seperator])],
+            tokenizer=tokenizer,
         )
         # add check for not cutting off?
         if attention_processor is not None:
@@ -156,7 +160,7 @@ def format_single_message_arrow_oneline(few_shot_examples, source, source_lang, 
         raise NotImplementedError()
     few_prompt = ""
     for sample in few_shot_examples:
-        few_prompt += f"{sample['source']} -> {sample['target']} <END> "
+        few_prompt += f"{sample['source']} -> {sample['target']} {no_newline_seperator} "
     return [{"role": "user", "content": few_prompt + f"{source} -> "}]
 
 
@@ -183,7 +187,7 @@ if __name__ == "__main__":
         for lang_pair in ["en-de", "de-en"]:
             for n_shots in [1, 4]:
                 translate(
-                    test=False,
+                    test=True,
                     lang_pair=lang_pair,
                     n_shots=n_shots,
                     prompt_formatter=formatter,
