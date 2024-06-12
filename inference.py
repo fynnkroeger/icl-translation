@@ -69,7 +69,7 @@ def translate(
             tokenize=True,
             add_generation_prompt=True,
         )
-        if i == 0:
+        if i == 0 and test:
             print(tokenizer.batch_decode(model_inputs[0]))
         input_sequence_len = model_inputs.shape[1]
         stop_strings = ["\n", no_newline_seperator] + ["["] if "[" not in sample["source"] else []
@@ -213,6 +213,6 @@ if __name__ == "__main__":
                     run_name=run_name,
                     model=model,
                     tokenizer=tokenizer,
-                    batch_size=32,
+                    batch_size=16,
                     # n_batches=1,
                 )
