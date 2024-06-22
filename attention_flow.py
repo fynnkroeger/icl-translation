@@ -1,6 +1,7 @@
 import numpy as np
 from pathlib import Path
 import json
+import matplotlib.pyplot as plt
 
 # todo use avg pooling here
 # todo change naming for attentions (format, index), put all in folder if we do more
@@ -52,6 +53,8 @@ kinds of tokens:
 - source
 - target (output)
 - INST
+# here find inst, this splits into the source and target
+# before: split by ###
 
 uninteresting patterns
 - self, previous, first attention
@@ -67,10 +70,31 @@ interesting patterns
 """
 
 
-def attention_flow(from_tokens, to_tokens, matrix):
-    coordinates = [(i, j) for i in from_tokens for j in to_tokens]
-    flow = sum(matrix[:, j, i] for i, j in coordinates)
-    return flow / len(coordinates)
+def coords(from_tokens, to_tokens):
+    return [(i, j) for i in from_tokens for j in to_tokens if i < j]
 
 
-print(attention_flow(start_and_inst, source1, attention))
+sources = source1 + source2 + source3 + source4
+targets = target1 + target2 + target3 + target4
+end_sources = end_source1 + end_source2 + end_source3 + end_source4
+end_targets = end_target1 + end_target2 + end_target3 + end_target4
+examples = sources + targets + end_sources + end_targets
+coordinates = {}
+# seperate examples and task??
+coordinates["source-source_end"] = coords(sources, end_sources)
+coordinates["source-target"] = coords(sources + end_sources, targets)
+coordinates["end_targets-inst"] = coords(end_targets, inst)
+
+coordinates["inst-task_target"] = coords(inst, task_target)
+coordinates["rest"] = [(i, j) for i in range(len(tokens)) for j in range(len(tokens)) if i < j]
+
+flows = {}
+for key, c in coordinates.items():
+    flows[key] = sum(attention[:, j, i] for i, j in c) / len(c)
+
+for k, v in flows.items():
+    plt.plot(v, label=k)
+plt.legend()
+plt.savefig("out.png")
+
+print(flows)
