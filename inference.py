@@ -19,13 +19,13 @@ def translate(
     few_shot_dataset_name,
     test_dataset_name,
     out_dir,
-    run_name,
     model,
     tokenizer,
     batch_size,
     n_batches=None,
     attention_processor=None,
 ):
+    run_name = prompt_formatter.__name__
     source_lang, target_lang = lang_pair.split("-")
     source_lang, target_lang = LANG_TABLE[source_lang], LANG_TABLE[target_lang]
 
@@ -210,7 +210,6 @@ if __name__ == "__main__":
                     few_shot_dataset_name="wmt21",
                     test_dataset_name="wmt22",
                     out_dir=Path("outputs"),
-                    run_name=run_name,
                     model=model,
                     tokenizer=tokenizer,
                     batch_size=16,

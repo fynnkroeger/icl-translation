@@ -25,16 +25,18 @@ def save_attention_heatmap(attentions, input_seq_len, seq_len, tokens, name):
                 : token_index + input_seq_len + 1,
             ] = layer
 
-    max_pooled = np.max(attention_matrix, axis=1)  # head dimension
-
     for index, token in enumerate(tokens[input_seq_len:], input_seq_len):
         if "\n" in token or "</s>" == token:  # add cutting at <END> and [
-            max_pooled = max_pooled[:, :index, :index]
+            attention_matrix = attention_matrix[:, :index, :index]
             tokens = tokens[:index]
             print("cutting off at", index)
             break
 
-    np.save(f"attentions/{name}.npy", max_pooled)
+    max_pooled = np.max(attention_matrix, axis=1)  # head dimension
+    avg_pooled = np.average(attention_matrix, axis=1)
+
+    np.save(f"attentions/{name}_max.npy", max_pooled)
+    np.save(f"attentions/{name}_avg.npy", avg_pooled)
     with open(f"attentions/{name}.json", "w") as f:
         json.dump(tokens, f)
     print(max_pooled.shape)
@@ -53,8 +55,7 @@ if __name__ == "__main__":
     )
     print("instatiated model")
     for formatter in [format_single_message_arrow_oneline]:
-        run_name = "".join(random.choices(string.ascii_uppercase, k=4))
-        print("starting run", run_name)
+        print("starting run", formatter.__name__)
 
         for n_shots in [4]:
             translate(
@@ -65,7 +66,6 @@ if __name__ == "__main__":
                 few_shot_dataset_name="wmt21",
                 test_dataset_name="wmt22",
                 out_dir=Path("outputs"),
-                run_name=run_name,
                 model=model,
                 tokenizer=tokenizer,
                 batch_size=1,
