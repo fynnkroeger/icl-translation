@@ -7,6 +7,7 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --job-name "icl_translation_eval"
 #SBATCH --output sbatch_out.txt
+#SBATCH --time 4:00:00
 source "/hpi/fs00/home/fynn.kroeger/miniconda3/etc/profile.d/conda.sh"
 conda activate alma-r
 cd /hpi/fs00/home/fynn.kroeger/project/icl-translation

@@ -8,6 +8,7 @@ sorted_out_old/
 outputs_old/
 .vscode/
 *.png
+Mistral-7B-v0.1/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

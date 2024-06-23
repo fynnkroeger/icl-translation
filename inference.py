@@ -120,7 +120,7 @@ def translate(
             json.dump(output, f, indent=1)
 
         logs = {}
-        if (log_file := Path("outputs/logs.json")).exists():
+        if (log_file := (out_path / "logs.json")).exists():
             logs = json.loads(log_file.read_text())
         logs[out_path.name] = dict(
             lang_pair=lang_pair,
@@ -199,7 +199,7 @@ if __name__ == "__main__":
     )
     print("instatiated model")
     for formatter in [
-        format_single_message_arrow_oneline,
+        # format_single_message_arrow_oneline,
         format_single_message_arrow,
         format_single_message_labeled,
         # format_single_message_prompt_arrow,
@@ -220,9 +220,9 @@ if __name__ == "__main__":
                     prompt_formatter=formatter,
                     few_shot_dataset_name="wmt21",
                     test_dataset_name="wmt22",
-                    out_dir=Path("Mistral-7B-v0.1"),
+                    out_dir=Path("Mistral-7B-v0.1/outputs"),
                     model=model,
                     tokenizer=tokenizer,
-                    batch_size=16,
+                    batch_size=32,
                     # n_batches=1,
                 )
