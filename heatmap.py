@@ -32,20 +32,22 @@ def process_layer(args):
 
 def process_file(path, n_shots):
     attention = np.load(path)
-    with open(path.with_suffix(".json")) as f:
+    with open(path.with_stem(path.stem[:-4]).with_suffix(".json")) as f:
         tokens = json.load(f)
     labelsize = {0: 10, 1: 7, 2: 6, 4: 6}[n_shots]
     figsize = {0: 10, 1: 10, 2: 32, 4: 40}[n_shots]
     layers = list(range(32))
     args = [(path, layer_index, tokens, attention, labelsize, figsize) for layer_index in layers]
 
-    with Pool(32) as pool:
+    with Pool(8) as pool:
         list(tqdm(pool.imap_unordered(process_layer, args), total=len(layers)))
 
 
 if __name__ == "__main__":
-    n_shots = 4
-    for path in sorted(Path("attentions").iterdir()):
-        if path.suffix != ".npy" or "IDIS" not in path.stem:
-            continue
-        process_file(path, n_shots)
+    n_shots = 2
+    process_file(
+        Path(
+            "/hpi/fs00/home/fynn.kroeger/project/icl-translation/attentions/wmt22_de-en_04shot_wmt21_format_single_message_arrow_oneline_00_max.npy"
+        ),
+        n_shots,
+    )

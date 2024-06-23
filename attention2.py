@@ -61,6 +61,7 @@ if __name__ == "__main__":
         for n_shots in [4]:
             translate(
                 test=True,  # dont overwrite files
+                instruct=False,
                 lang_pair="de-en",
                 n_shots=n_shots,
                 prompt_formatter=formatter,
