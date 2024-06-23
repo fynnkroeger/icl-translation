@@ -180,11 +180,12 @@ def format_single_message_arrow_oneline(few_shot_examples, source, source_lang, 
 
 
 def format_single_message_labeled(few_shot_examples, source, source_lang, target_lang):
+    instruction = f"Translations from {source_lang} to {target_lang}:\n\n"
     few_prompt = ""
     for sample in few_shot_examples:
         few_prompt += f"{source_lang}: {sample['source']}\n{target_lang}: {sample['target']}\n\n"
     prompt = f"{source_lang}: {source}\n{target_lang}: "
-    return [{"role": "user", "content": few_prompt + prompt}]
+    return [{"role": "user", "content": instruction + few_prompt + prompt}]
 
 
 if __name__ == "__main__":
@@ -200,6 +201,7 @@ if __name__ == "__main__":
     for formatter in [
         format_single_message_arrow_oneline,
         format_single_message_arrow,
+        format_single_message_labeled,
         # format_single_message_prompt_arrow,
         # format_multi_message,
         # todo assert so dont run wrong methods
@@ -218,9 +220,9 @@ if __name__ == "__main__":
                     prompt_formatter=formatter,
                     few_shot_dataset_name="wmt21",
                     test_dataset_name="wmt22",
-                    out_dir=Path("outputs"),
+                    out_dir=Path("Mistral-7B-v0.1"),
                     model=model,
                     tokenizer=tokenizer,
-                    batch_size=1,
+                    batch_size=16,
                     # n_batches=1,
                 )
