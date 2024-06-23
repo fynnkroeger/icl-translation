@@ -78,7 +78,9 @@ def translate(
         if i == 0 and test:
             print(tokenizer.batch_decode(model_inputs[0]))
         input_sequence_len = model_inputs.shape[-1]
-        stop_strings = ["\n", no_newline_seperator] + ["["] if "[" not in sample["source"] else []
+        stop_strings = ["\n", no_newline_seperator, "->"]
+        if "[" not in sample["source"]:
+            stop_strings.append("[")
         generation = model.generate(
             model_inputs.to("cuda"),
             max_new_tokens=200,
