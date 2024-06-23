@@ -223,6 +223,6 @@ if __name__ == "__main__":
                     out_dir=Path("Mistral-7B-v0.1/outputs"),
                     model=model,
                     tokenizer=tokenizer,
-                    batch_size=32,
+                    batch_size=20,
                     # n_batches=1,
                 )

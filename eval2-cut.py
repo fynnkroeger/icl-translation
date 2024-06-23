@@ -6,14 +6,15 @@ import re
 
 model_path = download_model("Unbabel/wmt22-cometkiwi-da")
 comet_model = load_from_checkpoint(model_path)
-Path("sorted_out").mkdir(exist_ok=True)
+path = Path("Mistral-7B-v0.1")
+(path / "eval").mkdir(exist_ok=True)
 save = True
 # hierarchichal structure for different datasets/evals?
 eval_output = {}
-if (eval_file := Path("sorted_out/evals.json")).exists():
+if (eval_file := (path / "evals.json")).exists():
     eval_output = json.loads(eval_file.read_text())
 new_eval = False
-for path in sorted(Path("outputs").iterdir()):
+for path in sorted((path / "outputs").iterdir()):
     if path.name in eval_output or "logs" in path.name:
         continue
 
