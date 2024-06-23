@@ -45,7 +45,8 @@ def save_attention_heatmap(attentions, input_seq_len, seq_len, tokens, name):
 
 if __name__ == "__main__":
     Path("attentions").mkdir(exist_ok=True)
-    model_name = "mistralai/Mistral-7B-Instruct-v0.2"
+    # model_name = "mistralai/Mistral-7B-Instruct-v0.2"
+    model_name = "mistralai/Mistral-7B-v0.1"
     # model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
     tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left")
     tokenizer.pad_token_id = tokenizer.eos_token_id

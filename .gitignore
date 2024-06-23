@@ -7,6 +7,7 @@ sorted_out/
 sorted_out_old/
 outputs_old/
 .vscode/
+*.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

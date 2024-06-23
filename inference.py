@@ -13,6 +13,7 @@ no_newline_seperator = "###"
 
 def translate(
     test,
+    instruct,
     lang_pair,
     n_shots,
     prompt_formatter,
@@ -59,19 +60,24 @@ def translate(
             formatted = prompt_formatter(
                 few_shot_examples, sample["source"], source_lang, target_lang
             )
+            if not instruct:
+                formatted = formatted[-1]["content"]
             messages2d.append(formatted)
         if i == 0:
             print(prompt_log := messages2d[0])
-        model_inputs = tokenizer.apply_chat_template(
-            messages2d,
-            padding=True,
-            return_tensors="pt",
-            tokenize=True,
-            add_generation_prompt=True,
-        )
+        if instruct:
+            model_inputs = tokenizer.apply_chat_template(
+                messages2d,
+                padding=True,
+                return_tensors="pt",
+                tokenize=True,
+                add_generation_prompt=True,
+            )
+        else:
+            model_inputs = tokenizer(messages2d, padding=True, return_tensors="pt")["input_ids"]
         if i == 0 and test:
             print(tokenizer.batch_decode(model_inputs[0]))
-        input_sequence_len = model_inputs.shape[1]
+        input_sequence_len = model_inputs.shape[-1]
         stop_strings = ["\n", no_newline_seperator] + ["["] if "[" not in sample["source"] else []
         generation = model.generate(
             model_inputs.to("cuda"),
@@ -182,7 +188,8 @@ def format_single_message_labeled(few_shot_examples, source, source_lang, target
 
 
 if __name__ == "__main__":
-    model_name = "mistralai/Mistral-7B-Instruct-v0.2"
+    # model_name = "mistralai/Mistral-7B-Instruct-v0.1"
+    model_name = "mistralai/Mistral-7B-v0.1"
     tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left")
     tokenizer.pad_token_id = tokenizer.eos_token_id
     print("finished tokenizer init, on to model")
@@ -193,8 +200,9 @@ if __name__ == "__main__":
     for formatter in [
         format_single_message_arrow_oneline,
         format_single_message_arrow,
-        format_single_message_prompt_arrow,
-        format_multi_message,
+        # format_single_message_prompt_arrow,
+        # format_multi_message,
+        # todo assert so dont run wrong methods
     ]:
         run_name = formatter.__name__
         for lang_pair in ["en-de", "de-en"]:
@@ -204,6 +212,7 @@ if __name__ == "__main__":
                 print(f"starting {run_name} {lang_pair} {n_shots:=} ")
                 translate(
                     test=False,
+                    instruct=False,
                     lang_pair=lang_pair,
                     n_shots=n_shots,
                     prompt_formatter=formatter,
@@ -212,6 +221,6 @@ if __name__ == "__main__":
                     out_dir=Path("outputs"),
                     model=model,
                     tokenizer=tokenizer,
-                    batch_size=16,
+                    batch_size=1,
                     # n_batches=1,
                 )
