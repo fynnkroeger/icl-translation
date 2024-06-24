@@ -25,8 +25,8 @@ def coords_multi(from_tokens, to_tokens):
 
 
 def append_pointwise(*args):
-    out = args[0]
-    for x in args[1:]:
+    out = [[] for _ in args[0]]
+    for x in args:
         for i, a in enumerate(x):
             out[i] += a
     return out
@@ -108,6 +108,14 @@ coordinates = {
     # "source-end_inst": coords(task_source_end, inst),
     # "inst-task_target": coords(inst, task_target),
 }
+
+coordinates = {
+    "translation": coords_multi(append_pointwise(source, end_source), target),
+    "same": coords_multi(target, target),
+    # todo same for output, or append?
+    # "target": coords(flat(target), task_target),
+}
+
 
 everything = []
 for v in coordinates.values():
