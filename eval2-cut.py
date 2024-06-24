@@ -6,15 +6,15 @@ import re
 
 model_path = download_model("Unbabel/wmt22-cometkiwi-da")
 comet_model = load_from_checkpoint(model_path)
-path = Path("Mistral-7B-v0.1")
-(path / "eval").mkdir(exist_ok=True)
+model_path = Path("Mistral-7B-v0.1")
+(model_path / "sorted").mkdir(exist_ok=True)
 save = True
 # hierarchichal structure for different datasets/evals?
 eval_output = {}
-if (eval_file := (path / "evals.json")).exists():
+if (eval_file := (model_path / "evals.json")).exists():
     eval_output = json.loads(eval_file.read_text())
 new_eval = False
-for path in sorted((path / "outputs").iterdir()):
+for path in sorted((model_path / "outputs").iterdir())[:1]:
     if path.name in eval_output or "logs" in path.name:
         continue
 
@@ -39,7 +39,7 @@ for path in sorted((path / "outputs").iterdir()):
     if not save:
         continue
     new_eval = True
-    logs = json.loads(Path("outputs/logs.json").read_text())
+    logs = json.loads((model_path / "logs.json").read_text())
     eval_output[path.name] = dict(
         **logs[path.name],
         kiwi22=round(comet_score.system_score, 4),
@@ -58,7 +58,7 @@ for path in sorted((path / "outputs").iterdir()):
         scored.append(out)
     scored.sort(key=lambda d: d["kiwi22"])
 
-    with open(f"sorted_out/{path.name}", "w") as f:
+    with open(model_path / f"sorted/{path.name}", "w") as f:
         json.dump(scored, f, indent=1)
 
 if new_eval:
