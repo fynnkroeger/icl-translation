@@ -122,7 +122,7 @@ def translate(
             json.dump(output, f, indent=1)
 
         logs = {}
-        if (log_file := (out_path / "logs.json")).exists():
+        if (log_file := (out_path.parent / "logs.json")).exists():
             logs = json.loads(log_file.read_text())
         logs[out_path.name] = dict(
             lang_pair=lang_pair,
