@@ -24,6 +24,14 @@ def coords_multi(from_tokens, to_tokens):
     return out
 
 
+def append_pointwise(*args):
+    out = args[0]
+    for x in args[1:]:
+        for i, a in enumerate(x):
+            out[i] += a
+    return out
+
+
 # todo use avg pooling here
 # todo change naming for attentions (format, index), put all in folder if we do more
 path = Path("attentions/wmt22_de-en_04shot_wmt21_format_single_message_arrow_oneline_00_avg.npy")
@@ -31,22 +39,24 @@ attention = np.load(path)
 with open(path.with_stem(path.stem[:-4]).with_suffix(".json")) as f:
     tokens = json.load(f)
 
-print(attention.shape)  # (32, 181, 182)
+print(attention.shape)
+for i, t in enumerate(tokens):
+    print(f"{i:03d} {t}")
 
 start_and_inst = [0, 1, 2, 3]
 
-source = [list(range(4, 24)), list(range(45, 62)), list(range(76, 91)), list(range(105, 129))]
+source = [list(range(1, 21)), list(range(42, 59)), list(range(73, 88)), list(range(102, 126))]
 
-end_source = [[24, 25], [62], [91, 92], [129, 130]]
+end_source = [[21, 22], [59], [88, 89], [126, 127]]
 
-target = [list(range(26, 43)), list(range(63, 74)), list(range(93, 103)), list(range(131, 146))]
+target = [list(range(23, 40)), list(range(60, 71)), list(range(90, 100)), list(range(128, 143))]
 
-end_target = [[43, 44], [74, 75], [103, 104], [146, 147]]
+end_target = [[40, 41], [71, 72], [100, 101], [143, 144]]
 
-task_source = list(range(148, 160))
-task_source_end = [160, 161]  # . ->
-inst = [162, 163, 164, 165, 166]
-task_target = list(range(167, 181))
+task_source = list(range(145, 157))
+task_source_end = [157, 158, 159]  # . ->
+# inst = [162, 163, 164, 165, 166]
+task_target = list(range(160, 170))
 """
 kinds of tokens:
 - instruction
@@ -86,10 +96,17 @@ interesting patterns
 # coordinates["end_target-inst"] = coords(flat(end_target), inst)
 
 coordinates = {
-    "source_target": coords(task_source, task_target),
-    "source_inst": coords(task_source, inst),
-    "source-end_inst": coords(task_source_end, inst),
-    "inst-task_target": coords(inst, task_target),
+    # does this make sense if we dont have end_source anywhere?
+    "source-source_end": coords_multi(source, end_source),
+    "example-target_end": coords_multi(append_pointwise(source, end_source, target), end_target),
+    # "source_end-target_end": coords_multi(end_source, end_target),
+    # "source_end-task_target": coords(flat(end_source), task_target),  # also goes up at the end
+    "examples-task_target": coords(flat(source + target), task_target),
+    "ends-task_target": coords(flat(end_target + end_source), task_target),
+    # "source_target": coords(task_source, task_target),
+    # "source_inst": coords(task_source, inst),
+    # "source-end_inst": coords(task_source_end, inst),
+    # "inst-task_target": coords(inst, task_target),
 }
 
 everything = []
@@ -104,7 +121,8 @@ coordinates["rest"] = [
 del coordinates["rest"]
 flows = {}
 for key, c in coordinates.items():
-    flows[key] = sum(attention[:, j, i] for i, j in c)  # / len(c)
+    flows[key] = sum(attention[:, j, i] for i, j in c) / len(c)
+# make one that is normalized, one that is not -> show different things
 
 # Plot the line plot
 colors = list(mcolors.TABLEAU_COLORS.values())

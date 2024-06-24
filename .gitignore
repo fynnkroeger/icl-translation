@@ -9,6 +9,7 @@ outputs_old/
 .vscode/
 *.png
 Mistral-7B-v0.1/
+sbatch_out.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -173,3 +174,4 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 out.png
+sbatch_out.txt
