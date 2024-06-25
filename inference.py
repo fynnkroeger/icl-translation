@@ -190,6 +190,14 @@ def format_single_message_labeled(few_shot_examples, source, source_lang, target
     return [{"role": "user", "content": instruction + few_prompt + prompt}]
 
 
+def format_single_message_arrow_title(few_shot_examples, source, source_lang, target_lang):
+    instruction = f"Translations from {source_lang} to {target_lang}:\n"
+    few_prompt = ""
+    for sample in few_shot_examples:
+        few_prompt += f"{sample['source']} -> {sample['target']}\n"
+    return [{"role": "user", "content": instruction + few_prompt + f"{source} -> "}]
+
+
 if __name__ == "__main__":
     # model_name = "mistralai/Mistral-7B-Instruct-v0.1"
     model_name = "mistralai/Mistral-7B-v0.1"
@@ -202,16 +210,22 @@ if __name__ == "__main__":
     print("instatiated model")
     for formatter in [
         # format_single_message_arrow_oneline,
-        format_single_message_arrow,
-        format_single_message_labeled,
+        # format_single_message_arrow,
+        # format_single_message_labeled,
         # format_single_message_prompt_arrow,
         # format_multi_message,
         # todo assert so dont run wrong methods
+        format_single_message_arrow_title
     ]:
         run_name = formatter.__name__
+        no_0shot = run_name in [
+            "format_single_message_arrow_oneline",
+            "format_single_message_arrow",
+        ]
+
         for lang_pair in ["en-de", "de-en"]:
             for n_shots in [0, 1, 4]:
-                if "message_arrow" in run_name and n_shots == 0:
+                if no_0shot and n_shots == 0:
                     continue  # need a few shot example as we have no label
                 print(f"starting {run_name} {lang_pair} {n_shots:=} ")
                 translate(
