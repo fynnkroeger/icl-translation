@@ -27,7 +27,7 @@ for l, v in lang_to_other.items():
             + pd.DataFrame(v)
             .pivot(index="run_name", columns="n_shots", values=metric)
             .reset_index()
-            .rename(columns={"run_name": "format"})
+            .rename(columns={"run_name": "format", 0: "0-shot", 1: "1-shot", 4: "4-shot"})
             .to_latex(index=False, float_format="%.4f" if metric == "kiwi22" else "%.2f")
             + "\\caption{"
             + f"{metric} evaluation for {l} translation"

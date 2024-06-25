@@ -57,6 +57,9 @@ task_source = list(range(145, 157))
 task_source_end = [157, 158, 159]  # . ->
 # inst = [162, 163, 164, 165, 166]
 task_target = list(range(160, 170))
+
+# todo only annotate stop tokens
+
 """
 kinds of tokens:
 - instruction

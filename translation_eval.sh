@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -A demelo-student
 #SBATCH --partition sorcery
-#SBATCH -C "ARCH:X86&GPU_MEM:40GB"
+#SBATCH -C "GPU_MEM:40GB"
 #SBATCH --gpus 1
 #SBATCH --mem 32G
 #SBATCH --cpus-per-task=16
