@@ -108,14 +108,14 @@ coordinates = {
     # "source-end_inst": coords(task_source_end, inst),
     # "inst-task_target": coords(inst, task_target),
 }
-
+"""
 coordinates = {
     "translation": coords_multi(append_pointwise(source, end_source), target),
     "same": coords_multi(target, target),
     # todo same for output, or append?
     # "target": coords(flat(target), task_target),
 }
-
+"""
 
 everything = []
 for v in coordinates.values():
@@ -138,7 +138,7 @@ fig, ax = plt.subplots()
 for idx, (k, v) in enumerate(flows.items()):
     ax.plot(v, label=k, color=colors[idx])
 ax.legend()
-plt.savefig("out.png", dpi=300)
+plt.savefig("plots/flow.png", dpi=300)
 print("done out")
 colors = ["#000000"] + colors
 # Create a triangular matrix
@@ -163,4 +163,4 @@ cax = ax.matshow(tri_matrix.T, cmap=cmap, norm=norm)
 handles = [mpatches.Patch(color=color_map[key], label=key) for key in color_map]
 ax.legend(handles=handles, loc="upper right")
 
-plt.savefig("triangular_matrix.png", dpi=300)
+plt.savefig("plots/flow_matrix.png", dpi=300)

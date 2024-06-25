@@ -7,6 +7,7 @@ from collections import defaultdict
 metrics = ["kiwi22", "bleu"]
 lang_pairs = ["de-en", "en-de"]
 model = "Mistral-7B-v0.1"
+# todo write table to file?
 with open(f"{model}/evals.json") as f:
     evals = json.load(f)
 # print(evals.values())
