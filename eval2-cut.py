@@ -14,7 +14,7 @@ eval_output = {}
 if (eval_file := (model_path / "evals.json")).exists():
     eval_output = json.loads(eval_file.read_text())
 new_eval = False
-for path in sorted((model_path / "outputs").iterdir())[:1]:
+for path in sorted((model_path / "outputs").iterdir()):
     if path.name in eval_output or "logs" in path.name:
         continue
 
