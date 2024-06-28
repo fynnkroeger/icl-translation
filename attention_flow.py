@@ -57,7 +57,9 @@ task_source = list(range(145, 157))
 task_source_end = [157, 158, 159]  # . ->
 # inst = [162, 163, 164, 165, 166]
 task_target = list(range(160, 170))
-
+all_source = source + [task_source]
+all_end_source = end_source + [task_source_end]
+all_target = target + [task_target]
 # todo only annotate stop tokens
 
 """
@@ -100,12 +102,12 @@ interesting patterns
 
 coordinates = {
     # does this make sense if we dont have end_source anywhere?
-    "source-source_end": coords_multi(source, end_source),
-    "example-target_end": coords_multi(append_pointwise(source, end_source, target), end_target),
+    "summarize source": coords_multi(source, end_source),
+    "summarize example": coords_multi(append_pointwise(source, end_source, target), end_target),
     # "source_end-target_end": coords_multi(end_source, end_target),
     # "source_end-task_target": coords(flat(end_source), task_target),  # also goes up at the end
-    "examples-task_target": coords(flat(source + target), task_target),
-    "ends-task_target": coords(flat(end_target + end_source), task_target),
+    "example attention": coords(flat(source + target), task_target),
+    "summary attention": coords(flat(end_target + end_source), task_target),
     # "source_target": coords(task_source, task_target),
     # "source_inst": coords(task_source, inst),
     # "source-end_inst": coords(task_source_end, inst),
@@ -113,8 +115,8 @@ coordinates = {
 }
 """
 coordinates = {
-    "translation": coords_multi(append_pointwise(source, end_source), target),
-    "same": coords_multi(target, target),
+    "translation": coords_multi(append_pointwise(all_source, all_end_source), all_target),
+    # "same": coords_multi(target, target),
     # todo same for output, or append?
     # "target": coords(flat(target), task_target),
 }
@@ -127,9 +129,9 @@ coordinates["rest"] = [
     (i, j)
     for i in range(len(tokens))
     for j in range(len(tokens))
-    if i < j and (i, j) not in everything
+    if 0 < i < j <= task_target[-1] and (i, j) not in everything
 ]
-del coordinates["rest"]
+# del coordinates["rest"]
 flows = {}
 for key, c in coordinates.items():
     flows[key] = sum(attention[:, j, i] for i, j in c) / len(c)
@@ -165,5 +167,7 @@ cax = ax.matshow(tri_matrix.T, cmap=cmap, norm=norm)
 # Create custom legend
 handles = [mpatches.Patch(color=color_map[key], label=key) for key in color_map]
 ax.legend(handles=handles, loc="upper right")
+plt.tight_layout()
+plt.axis("off")
 
 plt.savefig("plots/flow_matrix.png", dpi=300)
