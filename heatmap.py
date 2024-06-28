@@ -8,7 +8,7 @@ from multiprocessing import Pool
 
 def process_layer(args):
     path, layer_index, tokens, attention, labelsize, figsize = args
-    seqlen = attention.shape[-1]
+    seqlen = min(attention.shape[-1], len(tokens))  # likely from cutting newline
     fig, ax = plt.subplots(figsize=(figsize, figsize))
     ax.set_title(f"Layer {layer_index}")
     ax.imshow(attention[layer_index], cmap="viridis")
@@ -24,15 +24,16 @@ def process_layer(args):
     ax.spines["right"].set_visible(False)
     # fig.colorbar(im, ax=ax)
 
-    out_path = Path(f"attentions/heatmaps/{path.stem}/layer{layer_index:02d}.png")
+    out_path = Path(f"Mistral-7B-v0.1/heatmaps/{path.stem}/layer{layer_index:02d}.png")
     out_path.parent.mkdir(exist_ok=True, parents=True)
     plt.savefig(out_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
 
 
-def process_file(path, n_shots):
-    attention = np.load(path)
-    with open(path.with_stem(path.stem[:-4]).with_suffix(".json")) as f:
+def process_file(path, index, n_shots):
+    assert index == 0, "need to implement writing into different path"
+    attention = np.load(path / f"{index:04d}_max.npy")
+    with open(path / f"{index:04d}.json") as f:
         tokens = json.load(f)
     labelsize = {0: 10, 1: 7, 2: 6, 4: 6}[n_shots]
     figsize = {0: 10, 1: 10, 2: 32, 4: 40}[n_shots]
@@ -44,10 +45,6 @@ def process_file(path, n_shots):
 
 
 if __name__ == "__main__":
-    n_shots = 2
-    process_file(
-        Path(
-            "/hpi/fs00/home/fynn.kroeger/project/icl-translation/attentions/wmt22_de-en_04shot_wmt21_format_single_message_arrow_oneline_00_max.npy"
-        ),
-        n_shots,
-    )
+    for path in Path("Mistral-7B-v0.1/attention").iterdir():
+        print(path)
+        process_file(path, index=0, n_shots=2)
