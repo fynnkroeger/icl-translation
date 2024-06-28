@@ -98,7 +98,7 @@ def translate(
             tokens = []
             for s in range(seq_len):
                 tokens.append(tokenizer.batch_decode(generation.sequences[:, s])[0])
-            name = f"{out_path.stem}_{i:02d}"
+            name = f"{out_path.stem}/{i:04d}"
             attention_processor(generation.attentions, input_seq_len, seq_len, tokens, name)
 
         new_tokens = generation.sequences[:, input_sequence_len:]
