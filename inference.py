@@ -114,7 +114,7 @@ def translate(
                     translation=translation,
                 )
             )
-        if test:
+        if test and not n_batches:
             break
 
     if not test:

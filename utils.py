@@ -1,3 +1,21 @@
+def split_list(lst, delimiter):
+    result = []
+    current_sublist = []
+
+    for item in lst:
+        if item == delimiter:
+            if current_sublist:
+                result.append(current_sublist)
+                current_sublist = []
+        else:
+            current_sublist.append(item)
+
+    if current_sublist:
+        result.append(current_sublist)
+
+    return result
+
+
 LANG_TABLE = {
     "en": "English",
     "de": "German",
