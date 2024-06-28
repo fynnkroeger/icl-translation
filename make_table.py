@@ -13,10 +13,18 @@ with open(f"{model}/evals.json") as f:
 # print(evals.values())
 print()
 print()
+prompt_names = dict(
+    format_single_message_arrow_title="title arrow",
+    format_single_message_labeled="title label",
+    format_single_message_arrow="arrow",
+    format_single_message_arrow_oneline="arrow oneline",
+)
+
 lang_to_other = defaultdict(list)
 for result in evals.values():
     a = result
-    a["run_name"] = a["run_name"].replace("_", " ").replace("format ", "").replace("message", "")
+    a["run_name"] = prompt_names[a["run_name"]]
+    # .replace("_", " ").replace("format ", "").replace("message", "")
     lang_to_other[result["lang_pair"]].append(a)
     # dict(prompt=result["run_name"], n_shots=result["n_shots"], kiwi22=result["kiwi22"])
 
