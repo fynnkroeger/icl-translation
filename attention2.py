@@ -65,21 +65,29 @@ if __name__ == "__main__":
         format_single_message_arrow,
         format_single_message_arrow_oneline,
     ]:
-        print("starting run", formatter.__name__)
-
-        for n_shots in [4]:
-            translate(
-                test=True,  # dont overwrite logs
-                instruct=False,
-                lang_pair="en-de",  # because works, but not with nonewline -> why
-                n_shots=n_shots,
-                prompt_formatter=formatter,
-                few_shot_dataset_name="wmt21",
-                test_dataset_name="wmt22",
-                out_dir=Path("Mistral-7B-v0.1"),
-                model=model,
-                tokenizer=tokenizer,
-                batch_size=1,
-                n_batches=4,
-                attention_processor=save_attention_heatmap,  # maybe clean up with higher order function
-            )
+        run_name = formatter.__name__
+        no_0shot = run_name in [
+            "format_single_message_arrow_oneline",
+            "format_single_message_arrow",
+        ]
+        print("starting run", run_name)
+        for lang_pair in ["en-de", "de-en"]:
+            for n_shots in [0, 1]:
+                if no_0shot and n_shots == 0:
+                    continue  # need a few shot example as we have no label
+                print(f"starting {run_name} {lang_pair} {n_shots:=} ")
+                translate(
+                    test=True,  # dont overwrite logs
+                    instruct=False,
+                    lang_pair="en-de",  # because works, but not with nonewline -> why
+                    n_shots=n_shots,
+                    prompt_formatter=formatter,
+                    few_shot_dataset_name="wmt21",
+                    test_dataset_name="wmt22",
+                    out_dir=Path("Mistral-7B-v0.1"),
+                    model=model,
+                    tokenizer=tokenizer,
+                    batch_size=1,
+                    n_batches=1,
+                    attention_processor=save_attention_heatmap,  # maybe clean up with higher order function
+                )
