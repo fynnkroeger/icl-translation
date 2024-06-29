@@ -63,22 +63,25 @@ for i in range(n):
     # calculate flows
     coordinates = {
         # does this make sense if we dont have end_source anywhere?
-        "summarize source": utils.coords_multi(source_all, end_source_all),
-        "summarize example": utils.coords_multi(
-            utils.append_pointwise(source, end_source, target), end_target
-        ),
-        "example attention": utils.coords(utils.flat(source + target), task_target),
-        "summary attention": utils.coords(utils.flat(end_target + end_source), task_target),
         "translation": utils.coords_multi(
             utils.append_pointwise(source_all, end_source_all), target_all
         ),
+        "induction": utils.coords_multi(target_all, target_all)
+        + utils.coords_multi(source_all, source_all),
+        "summarize source": utils.coords_multi(source_all, end_source_all)
+        + utils.coords_multi(end_source_all, end_source_all),
+        "summarize example": utils.coords_multi(
+            utils.append_pointwise(source, end_source, target), end_target
+        ),
+        "summary attention": utils.coords(utils.flat(end_target + end_source), task_target),
+        "example attention": utils.coords(utils.flat(source + target), task_target),
     }
     # overlap detection?
     everything = []
     for v in coordinates.values():
         everything += v
     set_everything = set(everything)
-    assert len(everything) == len(set_everything)
+    assert len(everything) == len(set_everything), "matix value assinged to multiple categories!"
     coordinates["rest"] = [
         (i, j)
         for i in range(len(tokens))
