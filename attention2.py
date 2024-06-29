@@ -71,15 +71,15 @@ if __name__ == "__main__":
             "format_single_message_arrow",
         ]
         print("starting run", run_name)
-        for lang_pair in ["en-de", "de-en"]:
-            for n_shots in [0, 1]:
+        for lang_pair in ["de-en"]:
+            for n_shots in [0, 1, 4]:
                 if no_0shot and n_shots == 0:
                     continue  # need a few shot example as we have no label
                 print(f"starting {run_name} {lang_pair} {n_shots:=} ")
                 translate(
                     test=True,  # dont overwrite logs
                     instruct=False,
-                    lang_pair="en-de",  # because works, but not with nonewline -> why
+                    lang_pair=lang_pair,  # because works, but not with nonewline -> why
                     n_shots=n_shots,
                     prompt_formatter=formatter,
                     few_shot_dataset_name="wmt21",
