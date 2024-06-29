@@ -7,6 +7,32 @@ def extend_left_non_alpha(tokens, index):
     return stop_indices
 
 
+def flat(a):
+    out = []
+    for x in a:
+        out += x
+    return out
+
+
+def coords(from_tokens, to_tokens):
+    return [(i, j) for i in from_tokens for j in to_tokens if i < j]
+
+
+def coords_multi(from_tokens, to_tokens):
+    out = []
+    for a, b in zip(from_tokens, to_tokens):
+        out += coords(a, b)
+    return out
+
+
+def append_pointwise(*args):
+    out = [[] for _ in args[0]]
+    for x in args:
+        for i, a in enumerate(x):
+            out[i] += a
+    return out
+
+
 def split_list(lst, delimiter):
     result = []
     current_sublist = []
