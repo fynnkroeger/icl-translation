@@ -18,6 +18,7 @@ print(path)
 n = 4
 n_shots = 4
 flows = {}
+colors = ["#000000"] + list(mcolors.TABLEAU_COLORS.values())
 
 for i in range(n):
     matrix = np.load(path / f"{i:04d}_avg.npy")
@@ -46,7 +47,7 @@ for i in range(n):
             print(f"wrong number joiners {i:04d}")
             continue
         end_source_all.append(utils.extend_left_non_alpha(tokens, join_index[0]))
-    print(end_source_all)
+    print(["".join(tokens[x] for x in i) for i in end_source_all])
 
     source_all = []
     for a, b in zip([[0]] + end_target, end_source_all):
@@ -54,8 +55,6 @@ for i in range(n):
     target_all = []
     for a, b in zip(end_source_all, end_target + [[len(tokens)]]):
         target_all.append(list(range(a[-1] + 1, b[0])))
-    print(source_all)
-    print(target_all)
     task_target = target_all[-1]
     n_shots = len(end_target)
     source = source_all[:n_shots]
@@ -74,11 +73,17 @@ for i in range(n):
             utils.append_pointwise(source_all, end_source_all), target_all
         ),
     }
+    # overlap detection?
+    everything = []
+    for v in coordinates.values():
+        everything += v
+    set_everything = set(everything)
+    assert len(everything) == len(set_everything)
     coordinates["rest"] = [
         (i, j)
         for i in range(len(tokens))
         for j in range(len(tokens))
-        if 0 < i < j <= task_target[-1] and (i, j) not in coordinates.values()
+        if 0 < i < j <= task_target[-1] and (i, j) not in set_everything
     ]
     # del coordinates["rest"]
     for key, c in coordinates.items():
@@ -88,37 +93,36 @@ for i in range(n):
         else:
             flows[key] = res
 
+    if i == 0:
+        colors = colors
+        # Create a triangular matrix
+        tri_matrix = np.zeros((matrix.shape[1], matrix.shape[2]))
+        color_map = {k: colors[idx + 1] for idx, k in enumerate(coordinates.keys())}
+        for index, (key, c) in enumerate(coordinates.items()):
+            for i, j in c:
+                tri_matrix[i, j] = index + 1
 
-colors = list(mcolors.TABLEAU_COLORS.values())
+        # Plot the triangular matrix
+        fig, ax = plt.subplots()
+        cmap = mcolors.ListedColormap(colors)
+        bounds = np.linspace(0, len(colors), len(colors) + 1)
+        norm = mcolors.BoundaryNorm(bounds, cmap.N)
+
+        # masked_matrix = np.ma.masked_where(tri_matrix == 0, tri_matrix)
+        cax = ax.matshow(tri_matrix.T, cmap=cmap, norm=norm)
+
+        # Create custom legend
+        handles = [mpatches.Patch(color=color_map[key], label=key) for key in color_map]
+        ax.legend(handles=handles, loc="upper right")
+        plt.tight_layout()
+        plt.axis("off")
+
+        plt.savefig("Mistral-7B-v0.1/plots/flow_matrix.png", dpi=300)
+        print("matrix")
+
 fig, ax = plt.subplots()
 for idx, (k, v) in enumerate(flows.items()):
-    ax.plot(v, label=k, color=colors[idx])
+    ax.plot(v, label=k, color=colors[idx + 1])
 ax.legend()
 plt.savefig("Mistral-7B-v0.1/plots/flow.png", dpi=300)
 print("done out")
-colors = ["#000000"] + colors
-# Create a triangular matrix
-tri_matrix = np.zeros((matrix.shape[1], matrix.shape[2]))
-color_map = {k: colors[idx + 1] for idx, k in enumerate(coordinates.keys())}
-# color_map[-1] = "#000000"
-print(color_map)
-for index, (key, c) in enumerate(coordinates.items()):
-    for i, j in c:
-        tri_matrix[i, j] = index + 1
-
-# Plot the triangular matrix
-fig, ax = plt.subplots()
-cmap = mcolors.ListedColormap(colors)
-bounds = np.linspace(0, len(colors), len(colors) + 1)
-norm = mcolors.BoundaryNorm(bounds, cmap.N)
-
-# masked_matrix = np.ma.masked_where(tri_matrix == 0, tri_matrix)
-cax = ax.matshow(tri_matrix.T, cmap=cmap, norm=norm)
-
-# Create custom legend
-handles = [mpatches.Patch(color=color_map[key], label=key) for key in color_map]
-ax.legend(handles=handles, loc="upper right")
-plt.tight_layout()
-plt.axis("off")
-
-plt.savefig("Mistral-7B-v0.1/plots/flow_matrix.png", dpi=300)

@@ -1,6 +1,10 @@
+def is_punctuation(s):
+    return all(c in ".,!? ->#" for c in s)
+
+
 def extend_left_non_alpha(tokens, index):
     stop_indices = []
-    while not tokens[index].isalpha():
+    while is_punctuation(tokens[index]):
         stop_indices.append(index)
         index -= 1
     stop_indices.reverse()
