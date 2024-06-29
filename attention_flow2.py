@@ -2,6 +2,9 @@ from pathlib import Path
 import numpy as np
 import json
 import utils
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import matplotlib.patches as mpatches
 
 # for all formats
 # given a format, go though all attention maps, for each
@@ -14,6 +17,8 @@ path = Path(
 print(path)
 n = 4
 n_shots = 4
+flows = {}
+
 for i in range(n):
     matrix = np.load(path / f"{i:04d}_avg.npy")
     with open(path / f"{i:04d}.json", "r") as f:
@@ -65,4 +70,55 @@ for i in range(n):
         ),
         "example attention": utils.coords(utils.flat(source + target), task_target),
         "summary attention": utils.coords(utils.flat(end_target + end_source), task_target),
+        "translation": utils.coords_multi(
+            utils.append_pointwise(source_all, end_source_all), target_all
+        ),
     }
+    coordinates["rest"] = [
+        (i, j)
+        for i in range(len(tokens))
+        for j in range(len(tokens))
+        if 0 < i < j <= task_target[-1] and (i, j) not in coordinates.values()
+    ]
+    # del coordinates["rest"]
+    for key, c in coordinates.items():
+        res = sum(matrix[:, j, i] for i, j in c) / (len(c) * n)
+        if key in flows:
+            flows[key] += res
+        else:
+            flows[key] = res
+
+
+colors = list(mcolors.TABLEAU_COLORS.values())
+fig, ax = plt.subplots()
+for idx, (k, v) in enumerate(flows.items()):
+    ax.plot(v, label=k, color=colors[idx])
+ax.legend()
+plt.savefig("Mistral-7B-v0.1/plots/flow.png", dpi=300)
+print("done out")
+colors = ["#000000"] + colors
+# Create a triangular matrix
+tri_matrix = np.zeros((matrix.shape[1], matrix.shape[2]))
+color_map = {k: colors[idx + 1] for idx, k in enumerate(coordinates.keys())}
+# color_map[-1] = "#000000"
+print(color_map)
+for index, (key, c) in enumerate(coordinates.items()):
+    for i, j in c:
+        tri_matrix[i, j] = index + 1
+
+# Plot the triangular matrix
+fig, ax = plt.subplots()
+cmap = mcolors.ListedColormap(colors)
+bounds = np.linspace(0, len(colors), len(colors) + 1)
+norm = mcolors.BoundaryNorm(bounds, cmap.N)
+
+# masked_matrix = np.ma.masked_where(tri_matrix == 0, tri_matrix)
+cax = ax.matshow(tri_matrix.T, cmap=cmap, norm=norm)
+
+# Create custom legend
+handles = [mpatches.Patch(color=color_map[key], label=key) for key in color_map]
+ax.legend(handles=handles, loc="upper right")
+plt.tight_layout()
+plt.axis("off")
+
+plt.savefig("Mistral-7B-v0.1/plots/flow_matrix.png", dpi=300)
