@@ -1,3 +1,12 @@
+def extend_left_non_alpha(tokens, index):
+    stop_indices = []
+    while not tokens[index].isalpha():
+        stop_indices.append(index)
+        index -= 1
+    stop_indices.reverse()
+    return stop_indices
+
+
 def split_list(lst, delimiter):
     result = []
     current_sublist = []

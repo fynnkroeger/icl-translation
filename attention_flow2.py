@@ -22,27 +22,25 @@ for i in range(n):
     # get indices of seperators
     # then ends, then rest is examples
     sep = "###"
+    joiner = "->"
     if sep == tokens[-1]:
         tokens = tokens[:-1]
     # print(tokens)
     sep_indices = [i for i, t in enumerate(tokens) if t == sep]
     if len(sep_indices) != 4:
-        print(f"wrong n seperators {i:04d}")
+        print(f"wrong number seperators {i:04d}")
         continue
-    end_target = []
-    for index in sep_indices:
-        stop_indices = []
-        while not tokens[index].isalpha():
-            stop_indices.append(index)
-            index -= 1
-        stop_indices.reverse()
-        end_target.append(stop_indices)
-    print(sep_indices)
+    end_target = [utils.extend_left_non_alpha(tokens, i) for i in sep_indices]
     print(end_target)
-    examples = []
-    example = []
-    print([[tokens[a] for a in x] for x in end_target])
+    end_source = []
+    for a, b in zip([[0]] + end_target, end_target):
+        start = a[-1] + 1
+        example = tokens[start : b[0]]
+        join_index = [i + start for i, t in enumerate(example) if t == joiner]
+        if len(join_index) != 1:
+            print(f"wrong number joiners {i:04d}")
+            continue
+        end_source.append(utils.extend_left_non_alpha(tokens, join_index[0]))
+    print(end_source)
+
     continue
-    s = utils.split_list(tokens, sep)
-    for x in s:
-        print(x)
