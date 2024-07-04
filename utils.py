@@ -70,6 +70,13 @@ LANG_TABLE = {
     "gu": "Gujarati",
 }
 
+prompt_names = dict(
+    format_single_message_arrow_title="title arrow",
+    format_single_message_labeled="title label",
+    format_single_message_arrow="arrow",
+    format_single_message_arrow_oneline="arrow oneline",
+)
+
 if __name__ == "__main__":
     from inference import *
 
