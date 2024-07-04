@@ -121,8 +121,9 @@ def calculate_average_flow_and_plot(path: Path, n, average_over_coordinates=True
             # Create custom legend
             handles = [mpatches.Patch(color=color_map[key], label=key) for key in color_map]
             ax.legend(handles=handles, loc="upper right")
-            plt.tight_layout()
             plt.axis("off")
+            plt.title(file_name)
+            plt.tight_layout()
 
             plt.savefig(f"Mistral-7B-v0.1/plots/{file_name}_matrix.png", dpi=300)
             print("matrix")
@@ -131,12 +132,17 @@ def calculate_average_flow_and_plot(path: Path, n, average_over_coordinates=True
     for idx, (k, v) in enumerate(flows.items()):
         ax.plot(v, label=k, color=colors[idx + 1])
     ax.legend()
+    plt.title(file_name)
     plt.savefig(f"Mistral-7B-v0.1/plots/{file_name}_flow.png", dpi=300)
     print("done out")
 
 
+# todo somehow get the different segments with the matrix visually
+# do the matrix just as a normal image?
 if __name__ == "__main__":
+    Path("Mistral-7B-v0.1/plots").mkdir(exist_ok=True)
     path = Path(
-        "Mistral-7B-v0.1/attention/wmt22_de-en_04shot_wmt21_format_single_message_arrow_oneline"
+        "Mistral-7B-v0.1/attention/wmt22_en-de_04shot_wmt21_format_single_message_arrow_oneline"
     )
-    calculate_average_flow_and_plot(path, 1)
+    n = len([p for p in path.iterdir()]) // 3
+    calculate_average_flow_and_plot(path, n)
