@@ -25,6 +25,7 @@ def translate(
     batch_size,
     n_batches=None,
     attention_processor=None,
+    shuffle_seed=None,
 ):
     run_name = prompt_formatter.__name__
     source_lang, target_lang = lang_pair.split("-")
@@ -50,6 +51,11 @@ def translate(
 
     with open(f"datasets/{test_dataset_name}_{lang_pair}.json") as f:
         test_dataset = json.load(f)
+
+    if shuffle_seed is not None:
+        random.seed(shuffle_seed)
+        random.shuffle(test_dataset)
+
     output = []
     for i in tqdm(range(0, len(test_dataset), batch_size)):
         if n_batches is not None and i >= n_batches:

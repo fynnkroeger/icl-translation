@@ -29,10 +29,10 @@ def save_attention_heatmap(attentions, input_seq_len, seq_len, tokens, name):
             ] = layer
 
     for index, token in enumerate(tokens[input_seq_len:], input_seq_len):
-        if "\n" in token or "</s>" == token:  # add cutting at <END> and [
-            attention_matrix = attention_matrix[:, :index, :index]
+        if "\n" in token or "</s>" == token or "###" == token:  # add cutting at <END> and [
+            attention_matrix = attention_matrix[:, :, :index, :index]
             tokens = tokens[:index]
-            print("cutting off at", index)
+            # print("cutting off at", index)
             break
 
     max_pooled = np.max(attention_matrix, axis=1)  # head dimension
@@ -44,8 +44,8 @@ def save_attention_heatmap(attentions, input_seq_len, seq_len, tokens, name):
     np.save(folder / f"{name}_avg.npy", avg_pooled)
     with open(folder / f"{name}.json", "w") as f:
         json.dump(tokens, f)
-    print(max_pooled.shape)
-    print(tokens)
+    # print(max_pooled.shape)
+    # print(tokens)
 
 
 if __name__ == "__main__":
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     print("instatiated model")
     for formatter in [
         format_single_message_arrow_title,
-        format_single_message_labeled,
+        # format_single_message_labeled,
         format_single_message_arrow,
         format_single_message_arrow_oneline,
     ]:
@@ -71,13 +71,13 @@ if __name__ == "__main__":
             "format_single_message_arrow",
         ]
         print("starting run", run_name)
-        for lang_pair in ["de-en"]:
-            for n_shots in [0, 1, 4]:
+        for lang_pair in ["de-en", "en-de"]:
+            for n_shots in [4]:
                 if no_0shot and n_shots == 0:
                     continue  # need a few shot example as we have no label
                 print(f"starting {run_name} {lang_pair} {n_shots:=} ")
                 translate(
-                    test=True,  # dont overwrite logs
+                    test=True,  # dont overwrite logs, log somewhere else?
                     instruct=False,
                     lang_pair=lang_pair,  # because works, but not with nonewline -> why
                     n_shots=n_shots,
@@ -88,6 +88,7 @@ if __name__ == "__main__":
                     model=model,
                     tokenizer=tokenizer,
                     batch_size=1,
-                    n_batches=1,
+                    n_batches=100,
                     attention_processor=save_attention_heatmap,  # maybe clean up with higher order function
+                    shuffle_seed=999,
                 )
