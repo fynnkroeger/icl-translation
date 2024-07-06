@@ -7,6 +7,7 @@ import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
 import utils
 import random
+from PIL import Image, ImageDraw
 
 # for all formats
 # given a format, go though all attention maps, for each
@@ -112,31 +113,14 @@ def calculate_average_flow_and_plot(path: Path, n, average_over_coordinates=True
                 flows[key] = res
 
         if i == 0:
-            # Create a triangular matrix
-            tri_matrix = np.zeros((matrix.shape[1], matrix.shape[2]))
-            color_map = {k: colors[idx + 1] for idx, k in enumerate(coordinates.keys())}
-            for index, (key, c) in enumerate(coordinates.items()):
-                for i, j in c:
-                    tri_matrix[i, j] = index + 1
-
-            # Plot the triangular matrix
-            fig, ax = plt.subplots()
-            cmap = mcolors.ListedColormap(colors)
-            bounds = np.linspace(0, len(colors), len(colors) + 1)
-            norm = mcolors.BoundaryNorm(bounds, cmap.N)
-
-            # masked_matrix = np.ma.masked_where(tri_matrix == 0, tri_matrix)
-            cax = ax.matshow(tri_matrix.T, cmap=cmap, norm=norm)
-
-            # Create custom legend
-            handles = [mpatches.Patch(color=color_map[key], label=key) for key in color_map]
-            ax.legend(handles=handles, loc="upper right")
-            plt.axis("off")
-            plt.title(file_name)
-            plt.tight_layout()
-
-            plt.savefig(f"Mistral-7B-v0.1/plots/{file_name}_matrix.png", dpi=300)
-            print("matrix")
+            img = Image.new("RGB", (matrix.shape[1], matrix.shape[2]))
+            draw = ImageDraw.Draw(img)
+            for (name, coords), col in zip(coordinates.items(), colors[1:]):
+                print(name, col)
+                for y, x in coords:
+                    draw.point((y, x), fill=col)
+            img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
+            img.save(f"Mistral-7B-v0.1/plots/{file_name}_matrix.png")
 
     fig, ax = plt.subplots()
     for idx, (k, v) in enumerate(flows.items()):
