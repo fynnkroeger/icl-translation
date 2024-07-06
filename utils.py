@@ -18,11 +18,11 @@ def flat(a):
     return out
 
 
-def coords(from_tokens, to_tokens):
+def coords(from_tokens: list[int], to_tokens: list[int]):
     return [(i, j) for i in from_tokens for j in to_tokens if i < j]
 
 
-def coords_multi(from_tokens, to_tokens):
+def coords_multi(from_tokens: list[list[int]], to_tokens: list[list[int]]):
     out = []
     for a, b in zip(from_tokens, to_tokens):
         out += coords(a, b)

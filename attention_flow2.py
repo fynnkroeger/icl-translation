@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
 import utils
+import random
 
 # for all formats
 # given a format, go though all attention maps, for each
@@ -16,12 +17,16 @@ import utils
 def calculate_average_flow_and_plot(path: Path, n, average_over_coordinates=True):
     _, langpair, shot, _, *name = path.name.split("_")
     good_name = utils.prompt_names["_".join(name)]
+    assert good_name == "arrow oneline", "format not implemented yet"
     file_name = f'{langpair}_{shot}_{good_name.replace(" ", "-")}_{n:04d}'
     print(file_name)
     n_shots = int(shot[:2])
 
     flows = {}
-    colors = ["#000000"] + list(mcolors.TABLEAU_COLORS.values())
+    colors = list(mcolors.XKCD_COLORS.values())
+    random.seed(1)
+    random.shuffle(colors)
+    colors = ["#000000"] + list(mcolors.TABLEAU_COLORS.values()) + colors
 
     for i in range(n):
         matrix = np.load(path / f"{i:04d}_avg.npy")
@@ -42,14 +47,18 @@ def calculate_average_flow_and_plot(path: Path, n, average_over_coordinates=True
         end_target = [utils.extend_left_non_alpha(tokens, i) for i in sep_indices]
         print(end_target)
         end_source_all = []
+        error = False
         for a, b in zip([[0]] + end_target, end_target + [[len(tokens)]]):
             start = a[-1] + 1
             example = tokens[start : b[0]]
             join_index = [i + start for i, t in enumerate(example) if t == joiner]
             if len(join_index) != 1:
                 print(f"wrong number joiners {i:04d}")
-                continue
+                error = True
+                break
             end_source_all.append(utils.extend_left_non_alpha(tokens, join_index[0]))
+        if error:
+            continue
         print(["".join(tokens[x] for x in i) for i in end_source_all])
 
         source_all = []
@@ -59,6 +68,8 @@ def calculate_average_flow_and_plot(path: Path, n, average_over_coordinates=True
         for a, b in zip(end_source_all, end_target + [[len(tokens)]]):
             target_all.append(list(range(a[-1] + 1, b[0])))
         task_target = target_all[-1]
+        task_source = source_all[-1]
+        task_end_source = end_source_all[-1]
         n_shots = len(end_target)
         source = source_all[:n_shots]
         end_source = end_source_all[:n_shots]
@@ -66,11 +77,11 @@ def calculate_average_flow_and_plot(path: Path, n, average_over_coordinates=True
         # calculate flows
         coordinates = {
             # does this make sense if we dont have end_source anywhere?
-            "translation": utils.coords_multi(
-                utils.append_pointwise(source_all, end_source_all), target_all
-            ),
-            "induction": utils.coords_multi(target_all, target_all)
+            "translation": utils.coords_multi(utils.append_pointwise(source, end_source), target),
+            "translation task": utils.coords(task_source + task_end_source, task_target),
+            "induction": utils.coords_multi(target, target)
             + utils.coords_multi(source_all, source_all),
+            "induction task": utils.coords(task_target, task_target),
             "summarize source": utils.coords_multi(source_all, end_source_all)
             + utils.coords_multi(end_source_all, end_source_all),
             "summarize example": utils.coords_multi(
@@ -101,7 +112,6 @@ def calculate_average_flow_and_plot(path: Path, n, average_over_coordinates=True
                 flows[key] = res
 
         if i == 0:
-            colors = colors
             # Create a triangular matrix
             tri_matrix = np.zeros((matrix.shape[1], matrix.shape[2]))
             color_map = {k: colors[idx + 1] for idx, k in enumerate(coordinates.keys())}
@@ -141,8 +151,10 @@ def calculate_average_flow_and_plot(path: Path, n, average_over_coordinates=True
 # do the matrix just as a normal image?
 if __name__ == "__main__":
     Path("Mistral-7B-v0.1/plots").mkdir(exist_ok=True)
-    path = Path(
-        "Mistral-7B-v0.1/attention/wmt22_en-de_04shot_wmt21_format_single_message_arrow_oneline"
-    )
-    n = len([p for p in path.iterdir()]) // 3
-    calculate_average_flow_and_plot(path, n)
+    for lang in "en-de", "de-en":
+        path = Path(
+            f"Mistral-7B-v0.1/attention/wmt22_{lang}_04shot_wmt21_format_single_message_arrow_oneline"
+        )
+        n = len([p for p in path.iterdir() if "max" not in p.name]) // 2
+        print(n, path.name)
+        calculate_average_flow_and_plot(path, n)
