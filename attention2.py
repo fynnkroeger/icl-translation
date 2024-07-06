@@ -40,7 +40,7 @@ def save_attention_heatmap(attentions, input_seq_len, seq_len, tokens, name):
 
     # because name contains a slash
     (folder / f"{name}_max.npy").parent.mkdir(exist_ok=True, parents=True)
-    np.save(folder / f"{name}_max.npy", max_pooled)
+    # np.save(folder / f"{name}_max.npy", max_pooled)
     np.save(folder / f"{name}_avg.npy", avg_pooled)
     with open(folder / f"{name}.json", "w") as f:
         json.dump(tokens, f)
