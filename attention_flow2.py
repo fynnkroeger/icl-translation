@@ -20,7 +20,10 @@ def calculate_average_flow_and_plot(
 ):
     _, langpair, shot, _, *name = path.name.split("_")
     good_name = utils.prompt_names["_".join(name)]
-    assert good_name == "arrow oneline", "format not implemented yet"
+    assert good_name in ["arrow oneline", "arrow"], "format not implemented yet"
+    sep = {"arrow oneline": "###", "arrow": "\n"}[good_name]
+    joiner = "->"
+
     file_name = f'{langpair}_{shot}_{good_name.replace(" ", "-")}_{n:04d}'
     print(file_name)
     n_shots = int(shot[:2])
@@ -38,8 +41,6 @@ def calculate_average_flow_and_plot(
         # print(len(tokens), matrix.shape)
         # get indices of seperators
         # then ends, then rest is examples
-        sep = "###"
-        joiner = "->"
         if sep == tokens[-1]:
             tokens = tokens[:-1]
         # print(tokens)
@@ -180,7 +181,7 @@ if __name__ == "__main__":
     Path("Mistral-7B-v0.1/plots").mkdir(exist_ok=True)
     for lang in "en-de", "de-en":
         path = Path(
-            f"Mistral-7B-v0.1/attention/wmt22_{lang}_04shot_wmt21_format_single_message_arrow_oneline"
+            f"Mistral-7B-v0.1/attention/wmt22_{lang}_04shot_wmt21_format_single_message_arrow"  # _oneline
         )
         n = len([p for p in path.iterdir() if "max" not in p.name]) // 2
         print(n, path.name)

@@ -1,5 +1,5 @@
 def is_punctuation(s):
-    return all(c in ".,!? ->#" for c in s)
+    return all(c in ".,!? ->#\n" for c in s)
 
 
 def extend_left_non_alpha(tokens, index):
