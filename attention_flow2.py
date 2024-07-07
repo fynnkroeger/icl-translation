@@ -15,7 +15,9 @@ from PIL import Image, ImageDraw
 # then average them and output plots
 
 
-def calculate_average_flow_and_plot(path: Path, n, average_over_coordinates=True):
+def calculate_average_flow_and_plot(
+    path: Path, n, average_over_coordinates=True, puctuation_summary=False
+):
     _, langpair, shot, _, *name = path.name.split("_")
     good_name = utils.prompt_names["_".join(name)]
     assert good_name == "arrow oneline", "format not implemented yet"
@@ -60,7 +62,7 @@ def calculate_average_flow_and_plot(path: Path, n, average_over_coordinates=True
             end_source_all.append(utils.extend_left_non_alpha(tokens, join_index[0]))
         if error:
             continue
-        print(["".join(tokens[x] for x in i) for i in end_source_all])
+        print([" ".join(tokens[x] for x in i) for i in end_source_all])
 
         source_all = []
         for a, b in zip([[0]] + end_target, end_source_all):
@@ -75,6 +77,12 @@ def calculate_average_flow_and_plot(path: Path, n, average_over_coordinates=True
         source = source_all[:n_shots]
         end_source = end_source_all[:n_shots]
         target = target_all[:n_shots]
+
+        end_source_punct = [a[:-1] for a in end_source_all]
+        end_source_sep = [[a[-1]] for a in end_source_all]
+        end_target_punct = [a[:-1] for a in end_target]
+        end_target_sep = [[a[-1]] for a in end_target]
+
         # calculate flows
         coordinates = {
             # does this make sense if we dont have end_source anywhere?
@@ -91,20 +99,44 @@ def calculate_average_flow_and_plot(path: Path, n, average_over_coordinates=True
             "summary attention": utils.coords(utils.flat(end_target + end_source), task_target),
             "example attention": utils.coords(utils.flat(source + target), task_target),
         }
+        if puctuation_summary:
+            coordinates = {
+                "summarize source": utils.coords_multi(source_all, end_source_all)
+                + utils.coords_multi(end_source_all, end_source_all),
+                "summarize source punct": utils.coords_multi(source_all, end_source_punct),
+                "summarize source sep": utils.coords_multi(source_all, end_source_sep)
+                + utils.coords_multi(end_source_punct, end_source_sep),
+                "summarize example": utils.coords_multi(
+                    utils.append_pointwise(source, end_source, target), end_target
+                ),
+                "summarize example punct": utils.coords_multi(
+                    utils.append_pointwise(source, end_source, target), end_target_punct
+                ),
+                "summarize example sep": utils.coords_multi(
+                    utils.append_pointwise(source, end_source, target), end_target_sep
+                ),
+                "summary attention": utils.coords(utils.flat(end_target + end_source), task_target),
+                "summary attention punct": utils.coords(
+                    utils.flat(end_target_punct + end_source_punct[:-1]), task_target
+                ),
+                "summary attention sep": utils.coords(
+                    utils.flat(end_target_sep + end_source_sep[:-1]), task_target
+                ),
+            }
         everything = []
         for v in coordinates.values():
             everything += v
         set_everything = set(everything)
-        assert len(everything) == len(
-            set_everything
-        ), "matix value assinged to multiple categories!"
-        coordinates["rest"] = [
-            (i, j)
-            for i in range(len(tokens))
-            for j in range(len(tokens))
-            if 0 < i < j <= task_target[-1] and (i, j) not in set_everything
-        ]
-        # del coordinates["rest"]
+        if not puctuation_summary:
+            assert len(everything) == len(
+                set_everything
+            ), "matix value assinged to multiple categories!"
+            coordinates["rest"] = [
+                (i, j)
+                for i in range(len(tokens))
+                for j in range(len(tokens))
+                if 0 < i < j <= task_target[-1] and (i, j) not in set_everything
+            ]
         for key, c in coordinates.items():
             res = sum(matrix[:, j, i] for i, j in c) / (len(c) * n)
             if key in flows:
@@ -113,6 +145,17 @@ def calculate_average_flow_and_plot(path: Path, n, average_over_coordinates=True
                 flows[key] = res
 
         if i == 0:
+            if puctuation_summary:
+                for (name, coords), col in zip(coordinates.items(), colors[1:]):
+                    img = Image.new("RGB", (matrix.shape[1], matrix.shape[2]))
+                    draw = ImageDraw.Draw(img)
+                    for y, x in coords:
+                        draw.point((y, x), fill=col)
+                    img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
+                    p = Path(f"Mistral-7B-v0.1/plots/{file_name}_matrix/{name}.png")
+                    p.parent.mkdir(exist_ok=True)
+                    img.save(p)
+
             img = Image.new("RGB", (matrix.shape[1], matrix.shape[2]))
             draw = ImageDraw.Draw(img)
             for (name, coords), col in zip(coordinates.items(), colors[1:]):
@@ -121,7 +164,7 @@ def calculate_average_flow_and_plot(path: Path, n, average_over_coordinates=True
                     draw.point((y, x), fill=col)
             img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
             img.save(f"Mistral-7B-v0.1/plots/{file_name}_matrix.png")
-
+    # todo normalize by n here
     fig, ax = plt.subplots()
     for idx, (k, v) in enumerate(flows.items()):
         ax.plot(v, label=k, color=colors[idx + 1])
