@@ -20,8 +20,8 @@ def calculate_average_flow_and_plot(
 ):
     _, langpair, shot, _, *name = path.name.split("_")
     good_name = utils.prompt_names["_".join(name)]
-    assert good_name in ["arrow oneline", "arrow"], "format not implemented yet"
-    sep = {"arrow oneline": "###", "arrow": "\n"}[good_name]
+    assert good_name in ["arrow oneline", "arrow", "title arrow"], "format not implemented yet"
+    sep = {"arrow oneline": "###", "arrow": "\n", "title arrow": "\n"}[good_name]
     joiner = "->"
 
     file_name = f'{langpair}_{shot}_{good_name.replace(" ", "-")}_{n:04d}'
@@ -45,17 +45,23 @@ def calculate_average_flow_and_plot(
             tokens = tokens[:-1]
         # print(tokens)
         sep_indices = [i for i, t in enumerate(tokens) if t == sep]
+        if good_name == "title arrow":
+            instruction_end, *sep_indices = sep_indices
+            instruction = list(range(1, instruction_end + 1))  # ob1
+        else:
+            instruction_end = 0
         if len(sep_indices) != 4:
             print(f"wrong number seperators {i:04d}")
             continue
         end_target = [utils.extend_left_non_alpha(tokens, i) for i in sep_indices]
         end_source_all = []
         error = False
-        for a, b in zip([[0]] + end_target, end_target + [[len(tokens)]]):
+        for a, b in zip([[instruction_end]] + end_target, end_target + [[len(tokens)]]):
             start = a[-1] + 1
             example = tokens[start : b[0]]
             join_index = [i + start for i, t in enumerate(example) if t == joiner]
             second_is_last = len(join_index) == 2 and join_index[1] == b[0] - 1
+            # just ignore, is bad generations
             if len(join_index) != 1 and not second_is_last:
                 print(f"wrong number joiners {i:04d}")
                 error = True
@@ -66,7 +72,7 @@ def calculate_average_flow_and_plot(
         # print([" ".join(tokens[x] for x in i) for i in end_source_all])
 
         source_all = []
-        for a, b in zip([[0]] + end_target, end_source_all):
+        for a, b in zip([[instruction_end]] + end_target, end_source_all):
             source_all.append(list(range(a[-1] + 1, b[0])))
         target_all = []
         for a, b in zip(end_source_all, end_target + [[len(tokens)]]):
@@ -94,6 +100,9 @@ def calculate_average_flow_and_plot(
             "summary attention": utils.coords(utils.flat(end_target + end_source), task_target),
             "example attention": utils.coords(utils.flat(source + target), task_target),
         }
+        if good_name == "title arrow":
+            coordinates["instruction summary"] = utils.coords(instruction, [instruction_end])
+
         if puctuation_summary:
             end_source_punct = [a[:-1] for a in end_source_all]
             end_source_sep = [[a[-1]] for a in end_source_all]
@@ -179,9 +188,9 @@ def calculate_average_flow_and_plot(
 # do the matrix just as a normal image?
 if __name__ == "__main__":
     Path("Mistral-7B-v0.1/plots").mkdir(exist_ok=True)
-    for lang in "en-de", "de-en":
+    for lang in "de-en", "en-de":
         path = Path(
-            f"Mistral-7B-v0.1/attention/wmt22_{lang}_04shot_wmt21_format_single_message_arrow"  # _oneline
+            f"Mistral-7B-v0.1/attention/wmt22_{lang}_04shot_wmt21_format_single_message_arrow_title"  # _oneline
         )
         n = len([p for p in path.iterdir() if "max" not in p.name]) // 2
         print(n, path.name)
