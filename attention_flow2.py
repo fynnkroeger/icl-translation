@@ -4,10 +4,10 @@ import json
 import utils
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-import matplotlib.patches as mpatches
 import utils
 import random
 from PIL import Image, ImageDraw
+from tqdm import tqdm
 
 # for all formats
 # given a format, go though all attention maps, for each
@@ -30,12 +30,12 @@ def calculate_average_flow_and_plot(
     random.seed(1)
     random.shuffle(colors)
     colors = ["#000000"] + list(mcolors.TABLEAU_COLORS.values()) + colors
-
-    for i in range(n):
+    valid_n = 0
+    for i in tqdm(range(n)):
         matrix = np.load(path / f"{i:04d}_avg.npy")
         with open(path / f"{i:04d}.json", "r") as f:
             tokens = json.load(f)
-        print(len(tokens), matrix.shape)
+        # print(len(tokens), matrix.shape)
         # get indices of seperators
         # then ends, then rest is examples
         sep = "###"
@@ -48,21 +48,21 @@ def calculate_average_flow_and_plot(
             print(f"wrong number seperators {i:04d}")
             continue
         end_target = [utils.extend_left_non_alpha(tokens, i) for i in sep_indices]
-        print(end_target)
         end_source_all = []
         error = False
         for a, b in zip([[0]] + end_target, end_target + [[len(tokens)]]):
             start = a[-1] + 1
             example = tokens[start : b[0]]
             join_index = [i + start for i, t in enumerate(example) if t == joiner]
-            if len(join_index) != 1:
+            second_is_last = len(join_index) == 2 and join_index[1] == b[0] - 1
+            if len(join_index) != 1 and not second_is_last:
                 print(f"wrong number joiners {i:04d}")
                 error = True
                 break
             end_source_all.append(utils.extend_left_non_alpha(tokens, join_index[0]))
         if error:
             continue
-        print([" ".join(tokens[x] for x in i) for i in end_source_all])
+        # print([" ".join(tokens[x] for x in i) for i in end_source_all])
 
         source_all = []
         for a, b in zip([[0]] + end_target, end_source_all):
@@ -78,11 +78,6 @@ def calculate_average_flow_and_plot(
         end_source = end_source_all[:n_shots]
         target = target_all[:n_shots]
 
-        end_source_punct = [a[:-1] for a in end_source_all]
-        end_source_sep = [[a[-1]] for a in end_source_all]
-        end_target_punct = [a[:-1] for a in end_target]
-        end_target_sep = [[a[-1]] for a in end_target]
-
         # calculate flows
         coordinates = {
             # does this make sense if we dont have end_source anywhere?
@@ -91,8 +86,7 @@ def calculate_average_flow_and_plot(
             "induction": utils.coords_multi(target, target)
             + utils.coords_multi(source_all, source_all),
             "induction task": utils.coords(task_target, task_target),
-            "summarize source": utils.coords_multi(source_all, end_source_all)
-            + utils.coords_multi(end_source_all, end_source_all),
+            "summarize source": utils.coords_multi(source_all, end_source_all),
             "summarize example": utils.coords_multi(
                 utils.append_pointwise(source, end_source, target), end_target
             ),
@@ -100,6 +94,11 @@ def calculate_average_flow_and_plot(
             "example attention": utils.coords(utils.flat(source + target), task_target),
         }
         if puctuation_summary:
+            end_source_punct = [a[:-1] for a in end_source_all]
+            end_source_sep = [[a[-1]] for a in end_source_all]
+            end_target_punct = [a[:-1] for a in end_target]
+            end_target_sep = [[a[-1]] for a in end_target]
+
             coordinates = {
                 "summarize source": utils.coords_multi(source_all, end_source_all)
                 + utils.coords_multi(end_source_all, end_source_all),
@@ -138,12 +137,14 @@ def calculate_average_flow_and_plot(
                 if 0 < i < j <= task_target[-1] and (i, j) not in set_everything
             ]
         for key, c in coordinates.items():
-            res = sum(matrix[:, j, i] for i, j in c) / (len(c) * n)
+            res = sum(matrix[:, j, i] for i, j in c)
+            if average_over_coordinates:
+                res /= len(c)
             if key in flows:
                 flows[key] += res
             else:
                 flows[key] = res
-
+        valid_n += 1
         if i == 0:
             if puctuation_summary:
                 for (name, coords), col in zip(coordinates.items(), colors[1:]):
@@ -159,7 +160,6 @@ def calculate_average_flow_and_plot(
             img = Image.new("RGB", (matrix.shape[1], matrix.shape[2]))
             draw = ImageDraw.Draw(img)
             for (name, coords), col in zip(coordinates.items(), colors[1:]):
-                print(name, col)
                 for y, x in coords:
                     draw.point((y, x), fill=col)
             img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
@@ -167,11 +167,11 @@ def calculate_average_flow_and_plot(
     # todo normalize by n here
     fig, ax = plt.subplots()
     for idx, (k, v) in enumerate(flows.items()):
-        ax.plot(v, label=k, color=colors[idx + 1])
+        ax.plot(v / valid_n, label=k, color=colors[idx + 1])
     ax.legend()
     plt.title(file_name)
     plt.savefig(f"Mistral-7B-v0.1/plots/{file_name}_flow.png", dpi=300)
-    print("done out")
+    print(valid_n, "valid examples")
 
 
 # todo somehow get the different segments with the matrix visually
