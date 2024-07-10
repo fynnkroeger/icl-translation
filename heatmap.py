@@ -30,9 +30,9 @@ def process_layer(args):
     plt.close(fig)
 
 
-def process_file(path, index, n_shots):
+def process_file(path, index, n_shots, use_max=True):
     assert index == 0, "need to implement writing into different path"
-    attention = np.load(path / f"{index:04d}_max.npy")
+    attention = np.load(path / f"{index:04d}_{'max' if use_max else 'avg'}.npy")
     with open(path / f"{index:04d}.json") as f:
         tokens = json.load(f)
     labelsize = {0: 10, 1: 7, 2: 6, 4: 6}[n_shots]
@@ -45,6 +45,13 @@ def process_file(path, index, n_shots):
 
 
 if __name__ == "__main__":
+    process_file(
+        Path("Mistral-7B-v0.1/attention/wmt22_de-en_04shot_wmt21_format_single_message_arrow"),
+        index=0,
+        n_shots=2,
+        use_max=False,
+    )
+    exit()
     for path in Path("Mistral-7B-v0.1/attention").iterdir():
         print(path)
         n_shots = int(path.name.split("_")[2][:2])
