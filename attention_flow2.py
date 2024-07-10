@@ -8,6 +8,7 @@ import utils
 import random
 from PIL import Image, ImageDraw
 from tqdm import tqdm
+from collections import defaultdict
 
 # for all formats
 # given a format, go though all attention maps, for each
@@ -27,7 +28,7 @@ def calculate_average_flow_and_plot(
     file_name = f'{langpair}_{shot}_{good_name.replace(" ", "-")}_{n:04d}'
     n_shots = int(shot[:2])
 
-    flows = {}
+    flows = defaultdict(list)
     colors = list(mcolors.XKCD_COLORS.values())
     random.seed(1)
     random.shuffle(colors)
@@ -90,13 +91,14 @@ def calculate_average_flow_and_plot(
             "induction": utils.coords_multi(target, target)
             + utils.coords_multi(source_all, source_all),
             "induction task": utils.coords(task_target, task_target),
-            "summarize source": utils.coords_multi(source_all, end_source_all),
             "summarize example": utils.coords_multi(
                 utils.append_pointwise(source, end_source, target), end_target
             ),
-            "divider attention": utils.coords(utils.flat(end_source), task_target),
             "joiner attention": utils.coords(utils.flat(end_target), task_target),
-            "example attention": utils.coords(utils.flat(source + target), task_target),
+            # low ones
+            # "example attention": utils.coords(utils.flat(source + target), task_target),
+            # "summarize source": utils.coords_multi(source_all, end_source_all),
+            # "divider attention": utils.coords(utils.flat(end_source), task_target),
         }
         if good_name == "title arrow":
             coordinates.update(
@@ -156,11 +158,8 @@ def calculate_average_flow_and_plot(
             res = sum(matrix[:, j, i] for i, j in c)
             if average_over_coordinates:
                 res /= len(c)
-            if key in flows:
-                flows[key] += res
-            else:
-                flows[key] = res
-        valid_n += 1
+            flows[key].append(res)
+
         if i == 0:
             if puctuation_summary:
                 for (name, coords), col in zip(coordinates.items(), colors[1:]):
@@ -183,22 +182,34 @@ def calculate_average_flow_and_plot(
     # todo normalize by n here
     fig, ax = plt.subplots()
     for idx, (k, v) in enumerate(flows.items()):
-        values = np.fmin(v / valid_n, 0.05)
+        arr = np.array(v)
         # todo make two plots, another without clamping
-        ax.plot(values, label=k, color=colors[idx + 1])
+        x = np.arange(1, 32 + 1)
+        ax.plot(
+            x, np.clip(np.quantile(arr, 0.5, 0), 0, 0.05), label=k, color=colors[idx + 1], alpha=0.8
+        )
+        # pretty much the same
+        # ax.plot(x, np.clip(np.average(arr, 0), 0, 0.05), ".", color=colors[idx + 1], alpha=0.8)
+        ax.fill_between(
+            x,
+            np.clip(np.quantile(arr, 0.25, 0), 0, 0.05),
+            np.clip(np.quantile(arr, 0.75, 0), 0, 0.05),
+            color=colors[idx + 1],
+            alpha=0.1,
+        )
     ax.legend()
     plt.title(file_name)
     plt.savefig(f"Mistral-7B-v0.1/plots/{file_name}_flow.png", dpi=300)
-    print(valid_n, "valid examples", file_name)
+    print(len(list(flows.values())[0]), "valid examples", file_name)
 
 
 if __name__ == "__main__":
     Path("Mistral-7B-v0.1/plots").mkdir(exist_ok=True)
-    mode = "arrow_title"
-    for lang in ["de-en"]:
-        path = Path(
-            f"Mistral-7B-v0.1/attention/wmt22_{lang}_04shot_wmt21_format_single_message_{mode}"  # _title # _oneline
-        )
-        n = len([p for p in path.iterdir() if "max" not in p.name]) // 2
-        print(n, path.name)
-        calculate_average_flow_and_plot(path, n)
+    for mode in ["arrow_title", "arrow", "arrow_oneline"]:
+        for lang in ["de-en"]:
+            path = Path(
+                f"Mistral-7B-v0.1/attention/wmt22_{lang}_04shot_wmt21_format_single_message_{mode}"  # _title # _oneline
+            )
+            n = len([p for p in path.iterdir() if "max" not in p.name]) // 2
+            print(n, path.name)
+            calculate_average_flow_and_plot(path, n)
