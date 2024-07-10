@@ -194,16 +194,13 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
     for idx, (k, v) in enumerate(flows.items()):
         arr = np.array(v)
         # todo make two plots, another without clamping
-        c = 1
-        ax.plot(
-            x, np.clip(np.quantile(arr, 0.5, 0), 0, c), label=k, color=colors[idx + 1], alpha=0.8
-        )
+        ax.plot(x, np.quantile(arr, 0.5, axis=0), label=k, color=colors[idx + 1], alpha=0.8)
         # pretty much the same
         # ax.plot(x, np.clip(np.average(arr, 0), 0, c), ".", color=colors[idx + 1], alpha=0.8)
         ax.fill_between(
             x,
-            np.clip(np.quantile(arr, 0.25, 0), 0, c),
-            np.clip(np.quantile(arr, 0.75, 0), 0, c),
+            np.quantile(arr, 0.25, axis=0),
+            np.quantile(arr, 0.75, axis=0),
             color=colors[idx + 1],
             alpha=0.1,
         )
