@@ -25,7 +25,6 @@ def calculate_average_flow_and_plot(
     joiner = "->"
 
     file_name = f'{langpair}_{shot}_{good_name.replace(" ", "-")}_{n:04d}'
-    print(file_name)
     n_shots = int(shot[:2])
 
     flows = {}
@@ -85,9 +84,7 @@ def calculate_average_flow_and_plot(
         end_source = end_source_all[:n_shots]
         target = target_all[:n_shots]
 
-        # calculate flows
         coordinates = {
-            # does this make sense if we dont have end_source anywhere?
             "translation": utils.coords_multi(utils.append_pointwise(source, end_source), target),
             "translation task": utils.coords(task_source + task_end_source, task_target),
             "induction": utils.coords_multi(target, target)
@@ -97,11 +94,20 @@ def calculate_average_flow_and_plot(
             "summarize example": utils.coords_multi(
                 utils.append_pointwise(source, end_source, target), end_target
             ),
-            "summary attention": utils.coords(utils.flat(end_target + end_source), task_target),
+            "divider attention": utils.coords(utils.flat(end_source), task_target),
+            "joiner attention": utils.coords(utils.flat(end_target), task_target),
             "example attention": utils.coords(utils.flat(source + target), task_target),
         }
         if good_name == "title arrow":
-            coordinates["instruction summary"] = utils.coords(instruction, [instruction_end])
+            coordinates.update(
+                {
+                    "instruction summary": utils.coords(instruction, [instruction_end]),
+                    "instruction attention": utils.coords(
+                        [instruction_end],
+                        utils.flat(source_all + target_all + end_source_all + end_target),
+                    ),
+                }
+            )
 
         if puctuation_summary:
             end_source_punct = [a[:-1] for a in end_source_all]
@@ -177,20 +183,21 @@ def calculate_average_flow_and_plot(
     # todo normalize by n here
     fig, ax = plt.subplots()
     for idx, (k, v) in enumerate(flows.items()):
-        ax.plot(v / valid_n, label=k, color=colors[idx + 1])
+        values = np.fmin(v / valid_n, 0.05)
+        # todo make two plots, another without clamping
+        ax.plot(values, label=k, color=colors[idx + 1])
     ax.legend()
     plt.title(file_name)
     plt.savefig(f"Mistral-7B-v0.1/plots/{file_name}_flow.png", dpi=300)
-    print(valid_n, "valid examples")
+    print(valid_n, "valid examples", file_name)
 
 
-# todo somehow get the different segments with the matrix visually
-# do the matrix just as a normal image?
 if __name__ == "__main__":
     Path("Mistral-7B-v0.1/plots").mkdir(exist_ok=True)
-    for lang in "de-en", "en-de":
+    mode = "arrow_title"
+    for lang in ["de-en"]:
         path = Path(
-            f"Mistral-7B-v0.1/attention/wmt22_{lang}_04shot_wmt21_format_single_message_arrow_title"  # _oneline
+            f"Mistral-7B-v0.1/attention/wmt22_{lang}_04shot_wmt21_format_single_message_{mode}"  # _title # _oneline
         )
         n = len([p for p in path.iterdir() if "max" not in p.name]) // 2
         print(n, path.name)
