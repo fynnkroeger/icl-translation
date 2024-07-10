@@ -4,6 +4,7 @@ import json
 import utils
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import matplotlib.scale as mscale
 import utils
 import random
 from PIL import Image, ImageDraw
@@ -16,9 +17,7 @@ from collections import defaultdict
 # then average them and output plots
 
 
-def calculate_average_flow_and_plot(
-    path: Path, n, average_over_coordinates=True, puctuation_summary=False
-):
+def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
     _, langpair, shot, _, *name = path.name.split("_")
     good_name = utils.prompt_names["_".join(name)]
     assert good_name in ["arrow oneline", "arrow", "title arrow"], "format not implemented yet"
@@ -100,6 +99,13 @@ def calculate_average_flow_and_plot(
             # "summarize source": utils.coords_multi(source_all, end_source_all),
             # "divider attention": utils.coords(utils.flat(end_source), task_target),
         }
+        # if good_name == "arrow oneline":
+        #     coordinates.update(
+        #         {
+        #             "summarize source": utils.coords_multi(source_all, end_source_all),
+        #             "divider attention": utils.coords(utils.flat(end_source), task_target),
+        #         }
+        #     )
         if good_name == "title arrow":
             coordinates.update(
                 {
@@ -155,10 +161,8 @@ def calculate_average_flow_and_plot(
                 if 0 < i < j <= task_target[-1] and (i, j) not in set_everything
             ]
         for key, c in coordinates.items():
-            res = sum(matrix[:, j, i] for i, j in c)
-            if average_over_coordinates:
-                res /= len(c)
-            flows[key].append(res)
+            relevant = [matrix[:, j, i] for i, j in c]
+            flows[key].append(np.average(relevant, axis=0))
 
         if i == 0:
             if puctuation_summary:
@@ -180,20 +184,26 @@ def calculate_average_flow_and_plot(
             img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
             img.save(f"Mistral-7B-v0.1/plots/{file_name}_matrix.png")
     # todo normalize by n here
+    mscale.register_scale(utils.SegmentedScale)
     fig, ax = plt.subplots()
+    x = np.arange(1, 32 + 1)
+    if good_name == "title arrow":
+        b = 0.03
+        plt.yscale("segmented", breakpoint=b, scale_ratio=10)
+        ax.plot(x, [b] * 32, "--", color="black")
     for idx, (k, v) in enumerate(flows.items()):
         arr = np.array(v)
         # todo make two plots, another without clamping
-        x = np.arange(1, 32 + 1)
+        c = 1
         ax.plot(
-            x, np.clip(np.quantile(arr, 0.5, 0), 0, 0.05), label=k, color=colors[idx + 1], alpha=0.8
+            x, np.clip(np.quantile(arr, 0.5, 0), 0, c), label=k, color=colors[idx + 1], alpha=0.8
         )
         # pretty much the same
-        # ax.plot(x, np.clip(np.average(arr, 0), 0, 0.05), ".", color=colors[idx + 1], alpha=0.8)
+        # ax.plot(x, np.clip(np.average(arr, 0), 0, c), ".", color=colors[idx + 1], alpha=0.8)
         ax.fill_between(
             x,
-            np.clip(np.quantile(arr, 0.25, 0), 0, 0.05),
-            np.clip(np.quantile(arr, 0.75, 0), 0, 0.05),
+            np.clip(np.quantile(arr, 0.25, 0), 0, c),
+            np.clip(np.quantile(arr, 0.75, 0), 0, c),
             color=colors[idx + 1],
             alpha=0.1,
         )

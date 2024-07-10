@@ -55,6 +55,64 @@ def split_list(lst, delimiter):
     return result
 
 
+# by claude
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.scale import ScaleBase
+from matplotlib.transforms import Transform
+
+
+class SegmentedScale(ScaleBase):
+    name = "segmented"
+
+    def __init__(self, axis, **kwargs):
+        # print(self, axis, kwargs)
+        super().__init__(axis)
+        self.breakpoint = kwargs.get("breakpoint", 1)
+        self.scale_ratio = kwargs.get("scale_ratio", 10)
+
+    def get_transform(self):
+        return SegmentedTransform(self.breakpoint, self.scale_ratio)
+
+    def set_default_locators_and_formatters(self, axis):
+        axis.set_major_locator(plt.AutoLocator())
+        axis.set_major_formatter(plt.ScalarFormatter())
+
+
+class SegmentedTransform(Transform):
+    input_dims = output_dims = 1
+
+    def __init__(self, breakpoint, scale_ratio):
+        Transform.__init__(self)
+        self.breakpoint = breakpoint
+        self.scale_ratio = scale_ratio
+
+    def transform_non_affine(self, a):
+        return np.where(
+            a <= self.breakpoint, a, self.breakpoint + (a - self.breakpoint) / self.scale_ratio
+        )
+
+    def inverted(self):
+        return InvertedSegmentedTransform(self.breakpoint, self.scale_ratio)
+
+
+class InvertedSegmentedTransform(Transform):
+    input_dims = output_dims = 1
+
+    def __init__(self, breakpoint, scale_ratio):
+        Transform.__init__(self)
+        self.breakpoint = breakpoint
+        self.scale_ratio = scale_ratio
+
+    def transform_non_affine(self, a):
+        return np.where(
+            a <= self.breakpoint, a, self.breakpoint + (a - self.breakpoint) * self.scale_ratio
+        )
+
+    def inverted(self):
+        return SegmentedTransform(self.breakpoint, self.scale_ratio)
+
+
 LANG_TABLE = {
     "en": "English",
     "de": "German",
