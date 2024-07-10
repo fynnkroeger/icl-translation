@@ -182,7 +182,7 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
                 for y, x in coords:
                     draw.point((y, x), fill=col)
             img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
-            img.save(f"Mistral-7B-v0.1/plots/{file_name}_matrix.png")
+            img.save(f"Mistral-7B-v0.1/plots/matrix/{file_name}.png")
     # todo normalize by n here
     mscale.register_scale(utils.SegmentedScale)
     fig, ax = plt.subplots()
@@ -211,12 +211,12 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
 
 
 if __name__ == "__main__":
-    Path("Mistral-7B-v0.1/plots").mkdir(exist_ok=True)
+    Path("Mistral-7B-v0.1/plots/matrix").mkdir(exist_ok=True, parents=True)
     for mode in ["arrow_title", "arrow", "arrow_oneline"]:
-        for lang in ["de-en"]:
+        for lang in ["de-en", "en-de"]:
             path = Path(
                 f"Mistral-7B-v0.1/attention/wmt22_{lang}_04shot_wmt21_format_single_message_{mode}"  # _title # _oneline
             )
             n = len([p for p in path.iterdir() if "max" not in p.name]) // 2
-            print(n, path.name)
+            # print(n, path.name)
             calculate_average_flow_and_plot(path, n)
