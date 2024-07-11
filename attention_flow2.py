@@ -32,7 +32,6 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
     random.seed(1)
     random.shuffle(colors)
     colors = ["#000000"] + list(mcolors.TABLEAU_COLORS.values()) + colors
-    valid_n = 0
     for i in tqdm(range(n)):
         matrix = np.load(path / f"{i:04d}_avg.npy")
         with open(path / f"{i:04d}.json", "r") as f:
@@ -84,6 +83,20 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
         end_source = end_source_all[:n_shots]
         target = target_all[:n_shots]
 
+        joiner_before = []
+        for s in range(n_shots):
+            joiner_before.extend(
+                utils.coords(
+                    end_target[s],
+                    utils.flat(
+                        source_all[s + 1 :]
+                        + target[s + 1 :]
+                        + end_source_all[s + 1 :]
+                        + end_target[s + 1 :]
+                    ),
+                )
+            )
+
         coordinates = {
             "translation": utils.coords_multi(utils.append_pointwise(source, end_source), target),
             "translation task": utils.coords(task_source + task_end_source, task_target),
@@ -93,7 +106,11 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
             "summarize example": utils.coords_multi(
                 utils.append_pointwise(source, end_source, target), end_target
             ),
-            "joiner attention": utils.coords(utils.flat(end_target), task_target),
+            "joiner attention": joiner_before,
+            "joiner attention task": utils.coords(utils.flat(end_target), task_target),
+            # todo i need a plot for this?
+            # "joiner attention task 0": utils.coords(utils.flat([end_target[0]]), task_target),  # basically all in arrow
+            # "joiner attention task": utils.coords(utils.flat(end_target[1:]), task_target),
             # low ones
             # "example attention": utils.coords(utils.flat(source + target), task_target),
             # "summarize source": utils.coords_multi(source_all, end_source_all),
@@ -113,7 +130,7 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
                     "instruction attention": utils.coords(
                         [instruction_end],
                         utils.flat(source_all + target_all + end_source_all + end_target),
-                    ),
+                    ),  # todo decompose into task and non task?
                 }
             )
 
@@ -183,7 +200,6 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
                     draw.point((y, x), fill=col)
             img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
             img.save(f"Mistral-7B-v0.1/plots/matrix/{file_name}.png")
-    # todo normalize by n here
     mscale.register_scale(utils.SegmentedScale)
     fig, ax = plt.subplots()
     x = np.arange(1, 32 + 1)
@@ -194,16 +210,17 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
     for idx, (k, v) in enumerate(flows.items()):
         arr = np.array(v)
         # todo make two plots, another without clamping
-        ax.plot(x, np.quantile(arr, 0.5, axis=0), label=k, color=colors[idx + 1], alpha=0.8)
+        ax.plot(x, np.median(arr, axis=0), label=k, color=colors[idx + 1], alpha=0.8)
         # pretty much the same
         # ax.plot(x, np.clip(np.average(arr, 0), 0, c), ".", color=colors[idx + 1], alpha=0.8)
-        ax.fill_between(
-            x,
-            np.quantile(arr, 0.25, axis=0),
-            np.quantile(arr, 0.75, axis=0),
-            color=colors[idx + 1],
-            alpha=0.1,
-        )
+        # never anything unexpected -> dont crowd unnecessary
+        # ax.fill_between(
+        #     x,
+        #     np.quantile(arr, 0.25, axis=0),
+        #     np.quantile(arr, 0.75, axis=0),
+        #     color=colors[idx + 1],
+        #     alpha=0.1,
+        # )
     ax.legend()
     plt.title(file_name)
     plt.savefig(f"Mistral-7B-v0.1/plots/{file_name}_flow.png", dpi=300)
