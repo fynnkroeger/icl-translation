@@ -201,16 +201,12 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
             img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
             img.save(f"Mistral-7B-v0.1/plots/matrix/{file_name}.png")
     mscale.register_scale(utils.SegmentedScale)
-    fig, ax = plt.subplots()
+    fig = plt.figure(figsize=(8, 5))
     x = np.arange(1, 32 + 1)
-    if good_name == "title arrow":
-        b = 0.03
-        plt.yscale("segmented", breakpoint=b, scale_ratio=10)
-        ax.plot(x, [b] * 32, "--", color="black")
     for idx, (k, v) in enumerate(flows.items()):
         arr = np.array(v)
         # todo make two plots, another without clamping
-        ax.plot(x, np.median(arr, axis=0), label=k, color=colors[idx + 1], alpha=0.8)
+        plt.plot(x, np.median(arr, axis=0), label=k, color=colors[idx + 1], alpha=0.8)
         # pretty much the same
         # ax.plot(x, np.clip(np.average(arr, 0), 0, c), ".", color=colors[idx + 1], alpha=0.8)
         # never anything unexpected -> dont crowd unnecessary
@@ -221,8 +217,20 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
         #     color=colors[idx + 1],
         #     alpha=0.1,
         # )
-    ax.legend()
+    if good_name == "title arrow" or good_name == "arrow":
+        b = 0.03
+        plt.yscale("segmented", breakpoint=b, scale_ratio=10)
+        bot, top = plt.ylim()
+        top = round(top / 0.1, 0) * 0.1
+        plt.yticks(
+            np.concatenate(
+                [np.linspace(0, b, 5, endpoint=False), np.linspace(b, top + b, 5, endpoint=False)]
+            )
+        )
+        plt.plot(x, [b] * 32, "--", color="black")
     plt.title(file_name)
+    plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+    plt.tight_layout()
     plt.savefig(f"Mistral-7B-v0.1/plots/{file_name}_flow.png", dpi=300)
     print(len(list(flows.values())[0]), "valid examples", file_name)
 
