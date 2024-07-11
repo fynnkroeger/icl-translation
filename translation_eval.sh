@@ -11,4 +11,4 @@
 source "/hpi/fs00/home/fynn.kroeger/miniconda3/etc/profile.d/conda.sh"
 conda activate alma-r
 cd /hpi/fs00/home/fynn.kroeger/project/icl-translation
-python attention2.py
+python inference.py

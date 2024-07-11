@@ -215,13 +215,10 @@ if __name__ == "__main__":
     )
     print("instatiated model")
     for formatter in [
-        # format_single_message_arrow_oneline,
-        # format_single_message_arrow,
-        # format_single_message_labeled,
-        # format_single_message_prompt_arrow,
-        # format_multi_message,
-        # todo assert so dont run wrong methods
-        format_single_message_arrow_title
+        format_single_message_arrow_oneline,
+        format_single_message_arrow,
+        format_single_message_labeled,
+        format_single_message_arrow_title,
     ]:
         run_name = formatter.__name__
         no_0shot = run_name in [
@@ -229,7 +226,7 @@ if __name__ == "__main__":
             "format_single_message_arrow",
         ]
 
-        for lang_pair in ["en-de", "de-en"]:
+        for lang_pair in ["fr-de", "de-fr"]:
             for n_shots in [0, 1, 4]:
                 if no_0shot and n_shots == 0:
                     continue  # need a few shot example as we have no label
