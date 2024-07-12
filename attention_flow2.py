@@ -42,29 +42,29 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
         if joiner_token == tokens[-1]:
             tokens = tokens[:-1]
         # print(tokens)
-        sep_indices = [i for i, t in enumerate(tokens) if t == joiner_token]
+        joiner_indices = [i for i, t in enumerate(tokens) if t == joiner_token]
         if good_name == "title arrow":
-            instruction_end, *sep_indices = sep_indices
+            instruction_end, *joiner_indices = joiner_indices
             instruction = list(range(1, instruction_end + 1))  # ob1
         else:
             instruction_end = 0
-        if len(sep_indices) != 4:
-            print(f"wrong number seperators {i:04d}")
+        if len(joiner_indices) != 4:
+            print(f"wrong number joiners {i:04d}")
             continue
-        joiners = [utils.extend_left_non_alpha(tokens, i) for i in sep_indices]
+        joiners = [utils.extend_left_non_alpha(tokens, i) for i in joiner_indices]
         divider_all = []
         error = False
         for a, b in zip([[instruction_end]] + joiners, joiners + [[len(tokens)]]):
             start = a[-1] + 1
             example = tokens[start : b[0]]
-            join_index = [i + start for i, t in enumerate(example) if t == divier_token]
-            second_is_last = len(join_index) == 2 and join_index[1] == b[0] - 1
+            divider_index = [i + start for i, t in enumerate(example) if t == divier_token]
+            second_is_last = len(divider_index) == 2 and divider_index[1] == b[0] - 1
             # just ignore, is bad generations
-            if len(join_index) != 1 and not second_is_last:
-                print(f"wrong number joiners {i:04d}")
+            if len(divider_index) != 1 and not second_is_last:
+                print(f"wrong number dividers {i:04d}")
                 error = True
                 break
-            divider_all.append(utils.extend_left_non_alpha(tokens, join_index[0]))
+            divider_all.append(utils.extend_left_non_alpha(tokens, divider_index[0]))
         if error:
             continue
         # print([" ".join(tokens[x] for x in i) for i in end_source_all])
