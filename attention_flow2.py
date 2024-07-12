@@ -21,8 +21,8 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
     _, langpair, shot, _, *name = path.name.split("_")
     good_name = utils.prompt_names["_".join(name)]
     assert good_name in ["arrow oneline", "arrow", "title arrow"], "format not implemented yet"
-    sep = {"arrow oneline": "###", "arrow": "\n", "title arrow": "\n"}[good_name]
-    joiner = "->"
+    joiner_token = {"arrow oneline": "###", "arrow": "\n", "title arrow": "\n"}[good_name]
+    divier_token = "->"
 
     file_name = f'{langpair}_{shot}_{good_name.replace(" ", "-")}_{n:04d}'
     n_shots = int(shot[:2])
@@ -39,10 +39,10 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
         # print(len(tokens), matrix.shape)
         # get indices of seperators
         # then ends, then rest is examples
-        if sep == tokens[-1]:
+        if joiner_token == tokens[-1]:
             tokens = tokens[:-1]
         # print(tokens)
-        sep_indices = [i for i, t in enumerate(tokens) if t == sep]
+        sep_indices = [i for i, t in enumerate(tokens) if t == joiner_token]
         if good_name == "title arrow":
             instruction_end, *sep_indices = sep_indices
             instruction = list(range(1, instruction_end + 1))  # ob1
@@ -51,69 +51,69 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
         if len(sep_indices) != 4:
             print(f"wrong number seperators {i:04d}")
             continue
-        end_target = [utils.extend_left_non_alpha(tokens, i) for i in sep_indices]
-        end_source_all = []
+        joiners = [utils.extend_left_non_alpha(tokens, i) for i in sep_indices]
+        divider_all = []
         error = False
-        for a, b in zip([[instruction_end]] + end_target, end_target + [[len(tokens)]]):
+        for a, b in zip([[instruction_end]] + joiners, joiners + [[len(tokens)]]):
             start = a[-1] + 1
             example = tokens[start : b[0]]
-            join_index = [i + start for i, t in enumerate(example) if t == joiner]
+            join_index = [i + start for i, t in enumerate(example) if t == divier_token]
             second_is_last = len(join_index) == 2 and join_index[1] == b[0] - 1
             # just ignore, is bad generations
             if len(join_index) != 1 and not second_is_last:
                 print(f"wrong number joiners {i:04d}")
                 error = True
                 break
-            end_source_all.append(utils.extend_left_non_alpha(tokens, join_index[0]))
+            divider_all.append(utils.extend_left_non_alpha(tokens, join_index[0]))
         if error:
             continue
         # print([" ".join(tokens[x] for x in i) for i in end_source_all])
 
         source_all = []
-        for a, b in zip([[instruction_end]] + end_target, end_source_all):
+        for a, b in zip([[instruction_end]] + joiners, divider_all):
             source_all.append(list(range(a[-1] + 1, b[0])))
         target_all = []
-        for a, b in zip(end_source_all, end_target + [[len(tokens)]]):
+        for a, b in zip(divider_all, joiners + [[len(tokens)]]):
             target_all.append(list(range(a[-1] + 1, b[0])))
         task_target = target_all[-1]
         task_source = source_all[-1]
-        task_end_source = end_source_all[-1]
-        n_shots = len(end_target)
+        task_divider = divider_all[-1]
+        n_shots = len(joiners)
         source = source_all[:n_shots]
-        end_source = end_source_all[:n_shots]
+        divider = divider_all[:n_shots]
         target = target_all[:n_shots]
 
         joiner_before = []
         for s in range(n_shots):
             joiner_before.extend(
                 utils.coords(
-                    end_target[s],
+                    joiners[s],
                     utils.flat(
                         source_all[s + 1 :]
                         + target[s + 1 :]
-                        + end_source_all[s + 1 :]
-                        + end_target[s + 1 :]
+                        + divider_all[s + 1 :]
+                        + joiners[s + 1 :]
                     ),
                 )
             )
 
         coordinates = {
-            "translation": utils.coords_multi(utils.append_pointwise(source, end_source), target),
-            "translation task": utils.coords(task_source + task_end_source, task_target),
+            "translation": utils.coords_multi(utils.append_pointwise(source, divider), target),
+            "translation task": utils.coords(task_source + task_divider, task_target),
             "induction": utils.coords_multi(target, target)
             + utils.coords_multi(source_all, source_all),
             "induction task": utils.coords(task_target, task_target),
+            "summarize source": utils.coords_multi(source_all, divider_all),
             "summarize example": utils.coords_multi(
-                utils.append_pointwise(source, end_source, target), end_target
+                utils.append_pointwise(divider, target), joiners
             ),
             "joiner attention": joiner_before,
-            "joiner attention task": utils.coords(utils.flat(end_target), task_target),
+            "joiner attention task": utils.coords(utils.flat(joiners), task_target),
             # todo i need a plot for this?
             # "joiner attention task 0": utils.coords(utils.flat([end_target[0]]), task_target),  # basically all in arrow
             # "joiner attention task": utils.coords(utils.flat(end_target[1:]), task_target),
             # low ones
             # "example attention": utils.coords(utils.flat(source + target), task_target),
-            # "summarize source": utils.coords_multi(source_all, end_source_all),
             # "divider attention": utils.coords(utils.flat(end_source), task_target),
         }
         # if good_name == "arrow oneline":
@@ -129,33 +129,33 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
                     "instruction summary": utils.coords(instruction, [instruction_end]),
                     "instruction attention": utils.coords(
                         [instruction_end],
-                        utils.flat(source_all + target_all + end_source_all + end_target),
+                        utils.flat(source_all + target_all + divider_all + joiners),
                     ),  # todo decompose into task and non task?
                 }
             )
 
         if puctuation_summary:
-            end_source_punct = [a[:-1] for a in end_source_all]
-            end_source_sep = [[a[-1]] for a in end_source_all]
-            end_target_punct = [a[:-1] for a in end_target]
-            end_target_sep = [[a[-1]] for a in end_target]
+            end_source_punct = [a[:-1] for a in divider_all]
+            end_source_sep = [[a[-1]] for a in divider_all]
+            end_target_punct = [a[:-1] for a in joiners]
+            end_target_sep = [[a[-1]] for a in joiners]
 
             coordinates = {
-                "summarize source": utils.coords_multi(source_all, end_source_all)
-                + utils.coords_multi(end_source_all, end_source_all),
+                "summarize source": utils.coords_multi(source_all, divider_all)
+                + utils.coords_multi(divider_all, divider_all),
                 "summarize source punct": utils.coords_multi(source_all, end_source_punct),
                 "summarize source sep": utils.coords_multi(source_all, end_source_sep)
                 + utils.coords_multi(end_source_punct, end_source_sep),
                 "summarize example": utils.coords_multi(
-                    utils.append_pointwise(source, end_source, target), end_target
+                    utils.append_pointwise(source, divider, target), joiners
                 ),
                 "summarize example punct": utils.coords_multi(
-                    utils.append_pointwise(source, end_source, target), end_target_punct
+                    utils.append_pointwise(source, divider, target), end_target_punct
                 ),
                 "summarize example sep": utils.coords_multi(
-                    utils.append_pointwise(source, end_source, target), end_target_sep
+                    utils.append_pointwise(source, divider, target), end_target_sep
                 ),
-                "summary attention": utils.coords(utils.flat(end_target + end_source), task_target),
+                "summary attention": utils.coords(utils.flat(joiners + divider), task_target),
                 "summary attention punct": utils.coords(
                     utils.flat(end_target_punct + end_source_punct[:-1]), task_target
                 ),
@@ -219,8 +219,8 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
         # )
     if good_name == "title arrow" or good_name == "arrow":
         b = 0.03
-        plt.yscale("segmented", breakpoint=b, scale_ratio=10)
-        bot, top = plt.ylim()
+        plt.yscale("segmented", breakpoint=b, scale_ratio=10 if good_name == "arrow" else 20)
+        _, top = plt.ylim()
         top = round(top / 0.1, 0) * 0.1
         plt.yticks(
             np.concatenate(
