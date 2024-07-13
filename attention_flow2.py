@@ -16,8 +16,23 @@ from collections import defaultdict
 # split the prompt, calculate attention flows
 # then average them and output plots
 
+colors_dict = {
+    "translation": "#fe420f",
+    "translation task": "#db5856",
+    "induction": "#fdb915",
+    "induction task": "#dc4d01",
+    "summarize source": "#8FF2D4",
+    "summarize example": "#8FED97",
+    "joiner attention": "#86BABA",
+    "joiner attention task": "#75f4f4",
+    "instruction summary": "#D5E280",
+    "instruction attention": "#58355e",
+    "instruction attention task": "#D480E2",
+    "rest": "#333",
+}
 
-def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
+
+def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, group_matrix=False):
     _, langpair, shot, _, *name = path.name.split("_")
     good_name = utils.prompt_names["_".join(name)]
     assert good_name in ["arrow oneline", "arrow", "title arrow"], "format not implemented yet"
@@ -28,10 +43,10 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
     n_shots = int(shot[:2])
 
     flows = defaultdict(list)
-    colors = list(mcolors.XKCD_COLORS.values())
-    random.seed(1)
-    random.shuffle(colors)
-    colors = ["#000000"] + list(mcolors.TABLEAU_COLORS.values()) + colors
+    # colors = list(mcolors.XKCD_COLORS.values())
+    # random.seed(1)
+    # random.shuffle(colors)
+    # colors = ["#000000"] + list(mcolors.TABLEAU_COLORS.values()) + colors
     for i in tqdm(range(n)):
         matrix = np.load(path / f"{i:04d}_avg.npy")
         with open(path / f"{i:04d}.json", "r") as f:
@@ -116,6 +131,16 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
             # "example attention": utils.coords(utils.flat(source + target), task_target),
             # "divider attention": utils.coords(utils.flat(end_source), task_target),
         }
+        groups = {
+            "translation": ["translation", "translation task"],
+            "induction": ["induction", "induction task"],
+            "example": [
+                "summarize source",
+                "summarize example",
+                "joiner attention",
+                "joiner attention task",
+            ],
+        }
         # if good_name == "arrow oneline":
         #     coordinates.update(
         #         {
@@ -129,10 +154,18 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
                     "instruction summary": utils.coords(instruction, [instruction_end]),
                     "instruction attention": utils.coords(
                         [instruction_end],
-                        utils.flat(source_all + target_all + divider_all + joiners),
+                        utils.flat(source_all + target + divider_all + joiners),
                     ),  # todo decompose into task and non task?
+                    "instruction attention task": utils.coords([instruction_end], task_target),
                 }
             )
+            groups = {
+                "instruction": [
+                    "instruction summary",
+                    "instruction attention",
+                    "instruction attention task",
+                ]
+            }
 
         if puctuation_summary:
             end_source_punct = [a[:-1] for a in divider_all]
@@ -183,30 +216,41 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
 
         if i == 0:
             if puctuation_summary:
-                for (name, coords), col in zip(coordinates.items(), colors[1:]):
+                for name, coords in coordinates.items():
                     img = Image.new("RGB", (matrix.shape[1], matrix.shape[2]))
                     draw = ImageDraw.Draw(img)
                     for y, x in coords:
-                        draw.point((y, x), fill=col)
+                        draw.point((y, x), fill=colors_dict[name])
                     img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
                     p = Path(f"Mistral-7B-v0.1/plots/{file_name}_matrix/{name}.png")
                     p.parent.mkdir(exist_ok=True)
                     img.save(p)
-
-            img = Image.new("RGB", (matrix.shape[1], matrix.shape[2]))
-            draw = ImageDraw.Draw(img)
-            for (name, coords), col in zip(coordinates.items(), colors[1:]):
-                for y, x in coords:
-                    draw.point((y, x), fill=col)
-            img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
-            img.save(f"Mistral-7B-v0.1/plots/matrix/{file_name}.png")
+            if group_matrix:
+                for name, group in groups.items():
+                    img = Image.new("RGB", (matrix.shape[1], matrix.shape[2]))
+                    draw = ImageDraw.Draw(img)
+                    for name2, coords in coordinates.items():
+                        for y, x in coords:
+                            draw.point(
+                                (y, x), fill=colors_dict[name2] if name2 in group else "#333"
+                            )
+                    img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
+                    img.save(f"Mistral-7B-v0.1/plots/matrix/{file_name}_{name}.png")
+            else:
+                img = Image.new("RGB", (matrix.shape[1], matrix.shape[2]))
+                draw = ImageDraw.Draw(img)
+                for name, coords in coordinates.items():
+                    for y, x in coords:
+                        draw.point((y, x), fill=colors_dict[name])
+                img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
+                img.save(f"Mistral-7B-v0.1/plots/matrix/{file_name}.png")
     mscale.register_scale(utils.SegmentedScale)
     fig = plt.figure(figsize=(8, 5))
     x = np.arange(1, 32 + 1)
     for idx, (k, v) in enumerate(flows.items()):
         arr = np.array(v)
         # todo make two plots, another without clamping
-        plt.plot(x, np.median(arr, axis=0), label=k, color=colors[idx + 1], alpha=0.8)
+        plt.plot(x, np.median(arr, axis=0), label=k, color=colors_dict[k], alpha=0.8)
         # pretty much the same
         # ax.plot(x, np.clip(np.average(arr, 0), 0, c), ".", color=colors[idx + 1], alpha=0.8)
         # never anything unexpected -> dont crowd unnecessary
@@ -236,6 +280,15 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False):
 
 
 if __name__ == "__main__":
+    p = Path(
+        f"Mistral-7B-v0.1/attention/wmt22_de-en_04shot_wmt21_format_single_message_arrow"  # _title # _oneline
+    )
+    calculate_average_flow_and_plot(p, 1, group_matrix=True)
+    p2 = Path(
+        f"Mistral-7B-v0.1/attention/wmt22_de-en_04shot_wmt21_format_single_message_arrow_title"  # _title # _oneline
+    )
+    calculate_average_flow_and_plot(p2, 1, group_matrix=True)
+    exit()
     Path("Mistral-7B-v0.1/plots/matrix").mkdir(exist_ok=True, parents=True)
     for mode in ["arrow_title", "arrow", "arrow_oneline"]:
         for lang in ["de-en", "en-de"]:
