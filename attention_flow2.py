@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.scale as mscale
 import utils
-import random
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 from collections import defaultdict
@@ -17,17 +16,17 @@ from collections import defaultdict
 # then average them and output plots
 
 colors_dict = {
-    "translation": "#fe420f",
-    "translation task": "#db5856",
-    "induction": "#fdb915",
-    "induction task": "#dc4d01",
-    "summarize source": "#8FF2D4",
-    "summarize example": "#8FED97",
-    "joiner attention": "#86BABA",
-    "joiner attention task": "#75f4f4",
-    "instruction summary": "#D5E280",
-    "instruction attention": "#58355e",
-    "instruction attention task": "#D480E2",
+    "translation": "#FE9477",
+    "translation task": "#d40b00",
+    "induction": "#FEDB8B",
+    "induction task": "#fdb915",
+    "summarize source": "#E514FA",
+    "summarize example": "#8714B7",
+    "joiner attention": "#12890C",
+    "joiner attention task": "#71F26B",
+    "instruction summary": "#021E72",
+    "instruction attention": "#0441F7",
+    "instruction attention task": "#14EEFC",
     "rest": "#333",
 }
 
@@ -288,7 +287,7 @@ if __name__ == "__main__":
         f"Mistral-7B-v0.1/attention/wmt22_de-en_04shot_wmt21_format_single_message_arrow_title"  # _title # _oneline
     )
     calculate_average_flow_and_plot(p2, 1, group_matrix=True)
-    exit()
+    # exit()
     Path("Mistral-7B-v0.1/plots/matrix").mkdir(exist_ok=True, parents=True)
     for mode in ["arrow_title", "arrow", "arrow_oneline"]:
         for lang in ["de-en", "en-de"]:
