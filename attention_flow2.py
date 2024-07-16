@@ -24,11 +24,13 @@ colors_dict = {
     "induction task": "#fdb915",
     "summarize source": "#E514FA",
     "summarize example": "#8714B7",
-    "joiner attention": "#12890C",
+    "joiner attention": "#0D6108",
     "joiner attention task": "#71F26B",
     "instruction summary": "#021E72",
     "instruction attention": "#0441F7",
     "instruction attention task": "#14EEFC",
+    "joiner-joiner attention": "#00A36C",
+    "divider-divider attention": "#00C49A",
     "rest": "#333",
 }
 
@@ -100,6 +102,8 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
         target = target_all[:n_shots]
 
         joiner_before = []
+        joiner_joiner = []
+        div_div = []
         for s in range(n_shots):
             joiner_before.extend(
                 utils.coords(
@@ -108,9 +112,15 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
                         source_all[s + 1 :]
                         + target[s + 1 :]
                         + divider_all[s + 1 :]
-                        + joiners[s + 1 :]
+                        # + joiners[s + 1 :]
                     ),
                 )
+            )
+            joiner_joiner.extend(utils.coords([joiners[s][-1]], [j[-1] for j in joiners[s + 1 :]]))
+
+        for s in range(n_shots + 1):
+            div_div.extend(
+                utils.coords([divider_all[s][-1]], [d[-1] for d in divider_all[s + 1 :]])
             )
 
         coordinates = {
@@ -127,6 +137,8 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
             ),
             "joiner attention": joiner_before,
             "joiner attention task": utils.coords(utils.flat(joiners), task_target),
+            "joiner-joiner attention": joiner_joiner,
+            "divider-divider attention": div_div,
             # todo i need a plot for this?
             # "joiner attention task 0": utils.coords(utils.flat([end_target[0]]), task_target),  # basically all in arrow
             # "joiner attention task": utils.coords(utils.flat(end_target[1:]), task_target),
@@ -148,6 +160,7 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
                 "joiner attention",
                 "joiner attention task",
             ],
+            "special": ["joiner-joiner attention", "divider-divider attention"],
         }
         # if good_name == "arrow oneline":
         #     coordinates.update(
@@ -288,6 +301,8 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
 
 
 if __name__ == "__main__":
+    Path("Mistral-7B-v0.1/plots/matrix").mkdir(exist_ok=True, parents=True)
+
     p = Path(
         f"Mistral-7B-v0.1/attention/wmt22_de-en_04shot_wmt21_format_single_message_arrow"  # _title # _oneline
     )
@@ -297,7 +312,6 @@ if __name__ == "__main__":
     )
     calculate_average_flow_and_plot(p2, 1, group_matrix=True)
     # exit()
-    Path("Mistral-7B-v0.1/plots/matrix").mkdir(exist_ok=True, parents=True)
     for mode in ["arrow_title", "arrow", "arrow_oneline"]:
         for lang in ["de-en", "en-de"]:
             path = Path(
