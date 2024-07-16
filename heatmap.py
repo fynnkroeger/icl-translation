@@ -47,7 +47,8 @@ def process_file(path, index, n_shots, use_max=True):
 
 def make_image_plot_false_color(format, n_shot, index, layer, use_max=False):
     n = f"Mistral-7B-v0.1/attention/wmt22_de-en_{n_shot:02d}shot_wmt21_format_single_message_{format}"
-    attention = np.load(Path(n) / f"{index:04d}_{'max' if use_max else 'avg'}.npy")
+    path = Path(n)
+    attention = np.load(path / f"{index:04d}_{'max' if use_max else 'avg'}.npy")
     matrix = attention[layer]
     img_arr = np.zeros((matrix.shape[0], matrix.shape[1], 3))
     cmap = plt.get_cmap("viridis")
@@ -59,6 +60,16 @@ def make_image_plot_false_color(format, n_shot, index, layer, use_max=False):
     img = Image.fromarray((img_arr * 255).astype(np.uint8))
     img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
     img.save(f"Mistral-7B-v0.1/heatmaps/{format}_{n_shot:02d}_{layer:02d}.png")
+
+    with open(path / f"{index:04d}.json") as f:
+        tokens = np.array(json.load(f))
+    stripe = np.zeros((matrix.shape[0], 20, 3), dtype=np.uint8)
+    stripe[tokens == "###", :] = [30, 70, 255]
+    stripe[tokens == "\n", :] = [30, 70, 255]
+    stripe[tokens == "->", :] = [200, 200, 30]
+    img = Image.fromarray(stripe)
+    img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
+    img.save(f"Mistral-7B-v0.1/heatmaps/{format}_{n_shot:02d}_{layer:02d}_stripe.png")
 
 
 if __name__ == "__main__":
