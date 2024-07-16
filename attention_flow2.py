@@ -17,7 +17,9 @@ from collections import defaultdict
 
 colors_dict = {
     "translation": "#FE9477",
+    "translation divider": "#BB86BB",
     "translation task": "#d40b00",
+    "translation divider task": "#D45300",
     "induction": "#FEDB8B",
     "induction task": "#fdb915",
     "summarize source": "#E514FA",
@@ -112,8 +114,10 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
             )
 
         coordinates = {
-            "translation": utils.coords_multi(utils.append_pointwise(source, divider), target),
-            "translation task": utils.coords(task_source + task_divider, task_target),
+            "translation": utils.coords_multi(source, target),
+            "translation divider": utils.coords_multi(divider, target),
+            "translation task": utils.coords(task_source, task_target),
+            "translation divider task": utils.coords(task_divider, task_target),
             "induction": utils.coords_multi(target, target)
             + utils.coords_multi(source_all, source_all),
             "induction task": utils.coords(task_target, task_target),
@@ -131,7 +135,12 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
             # "divider attention": utils.coords(utils.flat(end_source), task_target),
         }
         groups = {
-            "translation": ["translation", "translation task"],
+            "translation": [
+                "translation",
+                "translation task",
+                "translation divider",
+                "translation divider task",
+            ],
             "induction": ["induction", "induction task"],
             "example": [
                 "summarize source",
