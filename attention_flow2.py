@@ -164,6 +164,7 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
             ],
             "special": ["joiner-joiner attention", "divider-divider attention"],
         }
+        right_plot = groups["special"]
         # if good_name == "arrow oneline":
         #     coordinates.update(
         #         {
@@ -232,6 +233,9 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
                 for j in range(len(tokens))
                 if 0 < i < j <= task_target[-1] and (i, j) not in set_everything
             ]
+        left = {k: v for k, v in coordinates.items() if k not in right_plot}
+        right = {k: v for k, v in coordinates.items() if k in right_plot}
+        coordinates = dict(**left, **right)
         for key, c in coordinates.items():
             relevant = [matrix[:, j, i] for i, j in c]
             flows[key].append(np.average(relevant, axis=0))
@@ -272,9 +276,8 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
     x = np.arange(1, 32 + 1)
     for idx, (k, v) in enumerate(flows.items()):
         arr = np.array(v)
-        # todo make two plots, another without clamping
-        alpha1 = 0.05 if k in groups.get("special", []) else 1
-        alpha2 = 1 if k in groups.get("special", []) else 0.05
+        alpha1 = 0.05 if k in right_plot else 1
+        alpha2 = 1 if k in right_plot else 0.05
         ax1.plot(x, np.median(arr, axis=0), label=k, color=colors_dict[k], alpha=alpha1)
         ax2.plot(x, np.median(arr, axis=0), label=k, color=colors_dict[k], alpha=alpha2)
         patches.append(mpatches.Patch(color=colors_dict[k], label=k))
@@ -303,7 +306,6 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
         ax1.plot(x, [b] * 32, "--", color="black")
         ax2.plot(x, [b] * 32, "--", color="black")
     plt.title(file_name)
-    # plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
     ax2.legend(handles=patches, bbox_to_anchor=(1.04, 1), loc="upper left")
     plt.tight_layout()
     plt.savefig(f"Mistral-7B-v0.1/plots/{file_name}_flow.png", dpi=300)
@@ -321,7 +323,7 @@ if __name__ == "__main__":
         f"Mistral-7B-v0.1/attention/wmt22_de-en_04shot_wmt21_format_single_message_arrow_title"  # _title # _oneline
     )
     calculate_average_flow_and_plot(p2, 1, group_matrix=True)
-    exit()
+    # exit()
     for mode in ["arrow_title", "arrow", "arrow_oneline"]:
         for lang in ["de-en", "en-de"]:
             path = Path(
