@@ -30,10 +30,10 @@ colors_dict = {
     "instruction summary": "#021E72",
     "instruction attention": "#0441F7",
     "instruction attention task": "#14EEFC",
-    "joiner-joiner attention": "#00A36C",
-    "divider-divider attention": "#00C49A",
-    "joiner-divider attention": "#ffA36C",
-    "divider-joiner attention": "#ffC49A",
+    "joiner-joiner flow": "#6DC1F2",
+    "divider-divider flow": "#00C49A",
+    "joiner-divider flow": "#757500",
+    "divider-joiner flow": "#FFA199",
     "rest": "#333",
 }
 
@@ -49,10 +49,6 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
     n_shots = int(shot[:2])
 
     flows = defaultdict(list)
-    # colors = list(mcolors.XKCD_COLORS.values())
-    # random.seed(1)
-    # random.shuffle(colors)
-    # colors = ["#000000"] + list(mcolors.TABLEAU_COLORS.values()) + colors
     for i in tqdm(range(n)):
         matrix = np.load(path / f"{i:04d}_avg.npy")
         with open(path / f"{i:04d}.json", "r") as f:
@@ -109,27 +105,17 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
         div_div = []
         joiner_div = []
         div_joiner = []
-        for s in range(n_shots):
-            joiner_before.extend(
-                utils.coords(
-                    joiners[s],
-                    utils.flat(
-                        source_all[s + 1 :]
-                        + target[s + 1 :]
-                        # + divider_all[s + 1 :]
-                        # + joiners[s + 1 :]
-                        # todo better
-                    ),
-                )
-            )
-            joiner_joiner.extend(utils.coords([joiners[s][-1]], [j[-1] for j in joiners[s + 1 :]]))
-            joiner_div.extend(utils.coords([joiners[s][-1]], [j[-1] for j in divider_all[s + 1 :]]))
 
-        for s in range(n_shots + 1):
-            div_div.extend(
-                utils.coords([divider_all[s][-1]], [d[-1] for d in divider_all[s + 1 :]])
-            )
-            div_joiner.extend(utils.coords([divider_all[s][-1]], [d[-1] for d in joiners[s + 1 :]]))
+        for s in range(n_shots):
+            joiner_joiner.extend(utils.coords([joiners[s][-1]], [j[-1] for j in joiners]))
+            joiner_div.extend(utils.coords([joiners[s][-1]], [j[-1] for j in divider_all]))
+            # no need for divider_all on left as can flow nowhere
+            div_div.extend(utils.coords([divider[s][-1]], [d[-1] for d in divider_all]))
+            # dont overlap with summary attention, only consider flow to later joiners
+            div_joiner.extend(utils.coords([divider[s][-1]], [d[-1] for d in joiners[s + 1 :]]))
+            c = utils.coords(joiners[s], utils.flat(source_all + target + divider_all + joiners))
+            joiner_before.extend([p for p in c if p not in joiner_joiner and p not in joiner_div])
+            # joiner_before.extend(utils.coords(joiners[s][:-1], utils.flat()))
 
         coordinates = {
             "translation": utils.coords_multi(source, target),
@@ -146,10 +132,10 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
             ),
             "joiner attention": joiner_before,
             "joiner attention task": utils.coords(utils.flat(joiners), task_target),
-            "joiner-joiner attention": joiner_joiner,
-            "divider-divider attention": div_div,
-            "joiner-divider attention": joiner_div,
-            "divider-joiner attention": div_joiner,
+            "joiner-joiner flow": joiner_joiner,
+            "joiner-divider flow": joiner_div,
+            "divider-divider flow": div_div,
+            "divider-joiner flow": div_joiner,
             # todo i need a plot for this?
             # "joiner attention task 0": utils.coords(utils.flat([end_target[0]]), task_target),  # basically all in arrow
             # "joiner attention task": utils.coords(utils.flat(end_target[1:]), task_target),
@@ -172,13 +158,13 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
                 "joiner attention task",
             ],
             "special": [
-                "joiner-joiner attention",
-                "divider-divider attention",
-                "joiner-divider attention",
-                "divider-joiner attention",
+                "joiner-joiner flow",
+                "divider-divider flow",
+                "joiner-divider flow",
+                "divider-joiner flow",
             ],
         }
-        right_plot = groups["special"] + ["summarize source", "summarize example", "induction"]
+        right_plot = groups["special"] + ["summarize source", "summarize example"]
         # if good_name == "arrow oneline":
         #     coordinates.update(
         #         {
@@ -276,6 +262,7 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
                             )
                     img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
                     img.save(f"Mistral-7B-v0.1/plots/matrix/{file_name}_{name}.png")
+                    print("matrix", name)
             else:
                 img = Image.new("RGB", (matrix.shape[1], matrix.shape[2]))
                 draw = ImageDraw.Draw(img)
@@ -291,7 +278,7 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
     for idx, (k, v) in enumerate(flows.items()):
         arr = np.array(v)
         alpha1 = 0.05 if k in right_plot else 1
-        alpha2 = 1 if k in right_plot else 0.05
+        alpha2 = 0.9 if k in right_plot else 0.05
         ax1.plot(x, np.median(arr, axis=0), label=k, color=colors_dict[k], alpha=alpha1)
         ax2.plot(x, np.median(arr, axis=0), label=k, color=colors_dict[k], alpha=alpha2)
         patches.append(mpatches.Patch(color=colors_dict[k], label=k))
@@ -337,7 +324,7 @@ if __name__ == "__main__":
         f"Mistral-7B-v0.1/attention/wmt22_de-en_04shot_wmt21_format_single_message_arrow_title"  # _title # _oneline
     )
     calculate_average_flow_and_plot(p2, 1, group_matrix=True)
-    exit()
+    # exit()
     for mode in ["arrow_title", "arrow", "arrow_oneline"]:
         for lang in ["de-en", "en-de"]:
             path = Path(
