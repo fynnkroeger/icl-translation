@@ -5,6 +5,7 @@ import utils
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.scale as mscale
+import matplotlib.patches as mpatches
 import utils
 from PIL import Image, ImageDraw
 from tqdm import tqdm
@@ -20,8 +21,8 @@ colors_dict = {
     "translation divider": "#BB86BB",
     "translation task": "#d40b00",
     "translation divider task": "#D45300",
-    "induction": "#FEDB8B",
-    "induction task": "#fdb915",
+    "induction": "#fdb915",
+    # "induction task": "#fdb915",
     "summarize source": "#E514FA",
     "summarize example": "#8714B7",
     "joiner attention": "#0D6108",
@@ -129,8 +130,9 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
             "translation task": utils.coords(task_source, task_target),
             "translation divider task": utils.coords(task_divider, task_target),
             "induction": utils.coords_multi(target, target)
-            + utils.coords_multi(source_all, source_all),
-            "induction task": utils.coords(task_target, task_target),
+            + utils.coords_multi(source_all, source_all)
+            + utils.coords(task_target, task_target),
+            # "induction task": utils.coords(task_target, task_target),
             "summarize source": utils.coords_multi(source_all, divider_all),
             "summarize example": utils.coords_multi(
                 utils.append_pointwise(divider, target), joiners
@@ -175,16 +177,15 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
                     "instruction summary": utils.coords(instruction, [instruction_end]),
                     "instruction attention": utils.coords(
                         [instruction_end],
-                        utils.flat(source_all + target + divider_all + joiners),
+                        utils.flat(source_all + target + divider_all + joiners) + task_target,
                     ),  # todo decompose into task and non task?
-                    "instruction attention task": utils.coords([instruction_end], task_target),
+                    # "instruction attention task": utils.coords([instruction_end], task_target),
                 }
             )
             groups = {
                 "instruction": [
                     "instruction summary",
                     "instruction attention",
-                    "instruction attention task",
                 ]
             }
 
@@ -266,12 +267,18 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
                 img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
                 img.save(f"Mistral-7B-v0.1/plots/matrix/{file_name}.png")
     mscale.register_scale(utils.SegmentedScale)
-    fig = plt.figure(figsize=(8, 5))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    patches = []
     x = np.arange(1, 32 + 1)
     for idx, (k, v) in enumerate(flows.items()):
         arr = np.array(v)
         # todo make two plots, another without clamping
-        plt.plot(x, np.median(arr, axis=0), label=k, color=colors_dict[k], alpha=0.8)
+        alpha1 = 0.05 if k in groups.get("special", []) else 1
+        alpha2 = 1 if k in groups.get("special", []) else 0.05
+        ax1.plot(x, np.median(arr, axis=0), label=k, color=colors_dict[k], alpha=alpha1)
+        ax2.plot(x, np.median(arr, axis=0), label=k, color=colors_dict[k], alpha=alpha2)
+        patches.append(mpatches.Patch(color=colors_dict[k], label=k))
+        # ax2.legend([line], [k], bbox_to_anchor=(1.04, 1), loc="upper left")
         # pretty much the same
         # ax.plot(x, np.clip(np.average(arr, 0), 0, c), ".", color=colors[idx + 1], alpha=0.8)
         # never anything unexpected -> dont crowd unnecessary
@@ -284,17 +291,20 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
         # )
     if good_name == "title arrow" or good_name == "arrow":
         b = 0.03
-        plt.yscale("segmented", breakpoint=b, scale_ratio=10 if good_name == "arrow" else 20)
+        ax1.set_yscale("segmented", breakpoint=b, scale_ratio=10 if good_name == "arrow" else 20)
+        ax2.set_yscale("segmented", breakpoint=b, scale_ratio=10 if good_name == "arrow" else 20)
         _, top = plt.ylim()
         top = round(top / 0.1, 0) * 0.1
-        plt.yticks(
-            np.concatenate(
-                [np.linspace(0, b, 5, endpoint=False), np.linspace(b, top + b, 5, endpoint=False)]
-            )
+        ticks = np.concatenate(
+            [np.linspace(0, b, 5, endpoint=False), np.linspace(b, top + b, 5, endpoint=False)]
         )
-        plt.plot(x, [b] * 32, "--", color="black")
+        ax1.set_yticks(ticks)
+        ax2.set_yticks(ticks)
+        ax1.plot(x, [b] * 32, "--", color="black")
+        ax2.plot(x, [b] * 32, "--", color="black")
     plt.title(file_name)
-    plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+    # plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+    ax2.legend(handles=patches, bbox_to_anchor=(1.04, 1), loc="upper left")
     plt.tight_layout()
     plt.savefig(f"Mistral-7B-v0.1/plots/{file_name}_flow.png", dpi=300)
     print(len(list(flows.values())[0]), "valid examples", file_name)
@@ -311,7 +321,7 @@ if __name__ == "__main__":
         f"Mistral-7B-v0.1/attention/wmt22_de-en_04shot_wmt21_format_single_message_arrow_title"  # _title # _oneline
     )
     calculate_average_flow_and_plot(p2, 1, group_matrix=True)
-    # exit()
+    exit()
     for mode in ["arrow_title", "arrow", "arrow_oneline"]:
         for lang in ["de-en", "en-de"]:
             path = Path(
