@@ -75,6 +75,7 @@ def make_image_plot_false_color(format, n_shot, index, layer, use_max=False):
 if __name__ == "__main__":
     make_image_plot_false_color("arrow_oneline", 4, 0, 17)  # translation
     make_image_plot_false_color("arrow_oneline", 4, 0, 11)  # induction
+    make_image_plot_false_color("arrow_oneline", 4, 0, 26)  # special
     make_image_plot_false_color("arrow_title", 4, 0, 25)  # instruction
     make_image_plot_false_color("arrow_oneline", 4, 0, 31)  # example
     make_image_plot_false_color("arrow", 4, 0, 25)  # example
