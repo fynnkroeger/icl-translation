@@ -31,7 +31,11 @@ It runs inference on the model but with batch size 1 and saves the attention map
 ## attention_flow.py
 Uses the attention matrices from above to create the main analysis line plots and the matrix plots visualizing the different patterns.
 
-## clean up
-make_table
+## heatmap.py
+Uses the attention matrices to compute heatmaps for exploration and visualization.
+
+## clean up?
+make_table.py
 translation_eval.sh
 contribution.py
+heatmap.py
