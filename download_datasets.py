@@ -5,7 +5,8 @@ from pathlib import Path
 overwrite = False
 Path("datasets").mkdir(exist_ok=True)
 
-for dataset in ["wmt21", "wmt22"]:  # "wmt23"
+for dataset in ["wmt21", "wmt22"]:
+    # all pairs that are availeble for both
     langs = "en-de, de-en, de-fr, fr-de, en-zh, zh-en, ja-en, en-ja, cs-en, en-cs, ru-en, en-ru"
     for lang_pair in langs.split(", ")[:4]:
         out_path = Path(f"datasets/{dataset}_{lang_pair}.json")
