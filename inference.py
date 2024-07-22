@@ -5,7 +5,6 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, StopStringCriteria
 from torch import bfloat16
 from pathlib import Path
 import random
-import string
 
 
 no_newline_seperator = "###"
@@ -96,7 +95,6 @@ def translate(
             stopping_criteria=[StopStringCriteria(tokenizer, stop_strings)],
             tokenizer=tokenizer,
         )
-        # add check for not cutting off?
         if attention_processor is not None:
             assert batch_size == 1
             seq_len = generation.sequences.shape[1]
@@ -162,7 +160,6 @@ def format_single_message_prompt_arrow(few_shot_examples, source, source_lang, t
         few_prompt += "\n"
     else:
         few_prompt = ""
-    # consider / using examples, ...
     prompt = (
         f"Translate this from {source_lang} to {target_lang}. Respond only with the translation.\n"
     )
@@ -205,7 +202,6 @@ def format_single_message_arrow_title(few_shot_examples, source, source_lang, ta
 
 
 if __name__ == "__main__":
-    # model_name = "mistralai/Mistral-7B-Instruct-v0.1"
     model_name = "mistralai/Mistral-7B-v0.1"
     tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left")
     tokenizer.pad_token_id = tokenizer.eos_token_id
