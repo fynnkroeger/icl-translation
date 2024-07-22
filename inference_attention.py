@@ -7,10 +7,6 @@ folder = Path("Mistral-7B-v0.1/attention")
 folder.mkdir(exist_ok=True, parents=True)
 
 
-def print_attention_len(attentions, *args):
-    print(len(attentions))
-
-
 def save_attention_heatmap(
     attentions, input_seq_len, seq_len, tokens, output_prefix, num_heads, pooling_method
 ):
