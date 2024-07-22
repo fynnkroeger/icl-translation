@@ -12,3 +12,9 @@ Running this file runs the downloaded datasets through `Mistral-7B-v0.1`, for ea
 This requires a GPU and can take a up to several hours.
 The `batch_size` at the very bottom of the file can be changed to adapt the memory requirements. 
 The generations are saved to `Mistral-7B-v0.1/outputs` in json format.
+
+## evaluation.py
+Running this file evaluates the outputs of the previous step and saves the results to `Mistral-7B-v0.1/evals.json`.
+COMET, BLEU and chrf2++ are used to evaluate translations.
+The outputs of the model are cut off before a newline or the character that is used to join the few shot examples, as the model sometimes continued generation.
+

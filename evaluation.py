@@ -9,7 +9,7 @@ comet_model = load_from_checkpoint(model_path)
 model_path = Path("Mistral-7B-v0.1")
 (model_path / "sorted").mkdir(exist_ok=True)
 save = True
-# hierarchichal structure for different datasets/evals?
+
 eval_output = {}
 if (eval_file := (model_path / "evals.json")).exists():
     eval_output = json.loads(eval_file.read_text())
