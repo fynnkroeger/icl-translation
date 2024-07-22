@@ -1,6 +1,7 @@
 from inference import *
 import numpy as np
 from torch import bfloat16, float16
+from functools import partial
 
 folder = Path("Mistral-7B-v0.1/attention")
 folder.mkdir(exist_ok=True, parents=True)
@@ -10,9 +11,10 @@ def print_attention_len(attentions, *args):
     print(len(attentions))
 
 
-def save_attention_heatmap(attentions, input_seq_len, seq_len, tokens, name):
+def save_attention_heatmap(
+    attentions, input_seq_len, seq_len, tokens, output_prefix, num_heads, pooling_method
+):
     layers = len(attentions[0])
-    num_heads = 32
     attention_matrix = np.zeros((layers, num_heads, seq_len, seq_len))
     for layer_num, layer in enumerate(attentions[0]):
         layer = layer.detach().cpu().to(float16).squeeze().numpy()
@@ -29,19 +31,21 @@ def save_attention_heatmap(attentions, input_seq_len, seq_len, tokens, name):
             ] = layer
 
     for index, token in enumerate(tokens[input_seq_len:], input_seq_len):
-        if "\n" in token or "</s>" == token or "###" == token:  # add cutting at <END> and [
+        if "\n" in token or "</s>" == token or "###" == token:
             attention_matrix = attention_matrix[:, :, :index, :index]
             tokens = tokens[:index]
             break
 
-    max_pooled = np.max(attention_matrix, axis=1)  # head dimension
-    avg_pooled = np.average(attention_matrix, axis=1)
-
-    # because name contains a slash
-    (folder / f"{name}_max.npy").parent.mkdir(exist_ok=True, parents=True)
-    # np.save(folder / f"{name}_max.npy", max_pooled)
-    np.save(folder / f"{name}_avg.npy", avg_pooled)
-    with open(folder / f"{name}.json", "w") as f:
+    if pooling_method == "max":
+        pooled = np.max(attention_matrix, axis=1)
+    elif pooling_method == "avg":
+        pooled = np.average(attention_matrix, axis=1)
+    else:
+        raise NotImplementedError()
+    out_file = folder / f"{output_prefix}_{pooling_method}.npy"
+    out_file.parent.mkdir(exist_ok=True, parents=True)  # output prefix contains /
+    np.save(out_file, pooled)
+    with open(folder / f"{output_prefix}.json", "w") as f:
         json.dump(tokens, f)
 
 
@@ -71,7 +75,7 @@ if __name__ == "__main__":
                     continue  # need a few shot example as we have no label
                 print(f"starting {run_name} {lang_pair} {n_shots:=} ")
                 translate(
-                    test=True,
+                    test=True,  # dont overwrite logs
                     instruct=False,
                     lang_pair=lang_pair,
                     n_shots=n_shots,
@@ -83,6 +87,8 @@ if __name__ == "__main__":
                     tokenizer=tokenizer,
                     batch_size=1,
                     n_batches=100,
-                    attention_processor=save_attention_heatmap,  # maybe clean up with higher order function
+                    attention_processor=partial(
+                        save_attention_heatmap, num_heads=32, pooling_method="avg"
+                    ),
                     shuffle_seed=999,
                 )
