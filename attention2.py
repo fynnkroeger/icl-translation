@@ -32,7 +32,6 @@ def save_attention_heatmap(attentions, input_seq_len, seq_len, tokens, name):
         if "\n" in token or "</s>" == token or "###" == token:  # add cutting at <END> and [
             attention_matrix = attention_matrix[:, :, :index, :index]
             tokens = tokens[:index]
-            # print("cutting off at", index)
             break
 
     max_pooled = np.max(attention_matrix, axis=1)  # head dimension
@@ -44,14 +43,10 @@ def save_attention_heatmap(attentions, input_seq_len, seq_len, tokens, name):
     np.save(folder / f"{name}_avg.npy", avg_pooled)
     with open(folder / f"{name}.json", "w") as f:
         json.dump(tokens, f)
-    # print(max_pooled.shape)
-    # print(tokens)
 
 
 if __name__ == "__main__":
-    # model_name = "mistralai/Mistral-7B-Instruct-v0.2"
     model_name = "mistralai/Mistral-7B-v0.1"
-    # model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
     tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left")
     tokenizer.pad_token_id = tokenizer.eos_token_id
     print("finished tokenizer init, on to model")
@@ -61,7 +56,6 @@ if __name__ == "__main__":
     print("instatiated model")
     for formatter in [
         format_single_message_arrow_title,
-        # format_single_message_labeled,
         format_single_message_arrow,
         format_single_message_arrow_oneline,
     ]:
@@ -77,9 +71,9 @@ if __name__ == "__main__":
                     continue  # need a few shot example as we have no label
                 print(f"starting {run_name} {lang_pair} {n_shots:=} ")
                 translate(
-                    test=True,  # dont overwrite logs, log somewhere else?
+                    test=True,
                     instruct=False,
-                    lang_pair=lang_pair,  # because works, but not with nonewline -> why
+                    lang_pair=lang_pair,
                     n_shots=n_shots,
                     prompt_formatter=formatter,
                     few_shot_dataset_name="wmt21",
