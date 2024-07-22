@@ -25,9 +25,11 @@ The outputs of the model are cut off before a newline or the character that is u
 This file can be used to generate LaTeX tables from the `evals.json` file.
 
 ## inference_attention.py 
-This file can be used to create attention maps that are used for the main analysis.
+This file can be used to create attention matrices that are used for the main analysis.
 It runs inference on the model but with batch size 1 and saves the attention maps to `Mistral-7B-v0.1/attention`.
 
+## attention_flow.py
+Uses the attention matrices from above to create the main analysis line plots and the matrix plots visualizing the different patterns.
 
 ## clean up
 make_table

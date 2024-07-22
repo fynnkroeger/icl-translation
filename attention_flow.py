@@ -3,7 +3,6 @@ import numpy as np
 import json
 import utils
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 import matplotlib.scale as mscale
 import matplotlib.patches as mpatches
 import utils
@@ -22,7 +21,6 @@ colors_dict = {
     "translation task": "#FF6900",
     "translation divider task": "#FF0000",
     "induction": "#fdb915",
-    # "induction task": "#fdb915",
     "summarize source": "#E514FA",
     "summarize example": "#8714B7",
     "joiner attention": "#7DE977",
@@ -53,19 +51,15 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
         matrix = np.load(path / f"{i:04d}_avg.npy")
         with open(path / f"{i:04d}.json", "r") as f:
             tokens = json.load(f)
-        # print(len(tokens), matrix.shape)
-        # get indices of seperators
-        # then ends, then rest is examples
         if joiner_token == tokens[-1]:
             tokens = tokens[:-1]
-        # print(tokens)
         joiner_indices = [i for i, t in enumerate(tokens) if t == joiner_token]
         if good_name == "title arrow":
             instruction_end, *joiner_indices = joiner_indices
             instruction = list(range(1, instruction_end + 1))  # ob1
         else:
             instruction_end = 0
-        if len(joiner_indices) != 4:
+        if len(joiner_indices) != n_shots:
             print(f"wrong number joiners {i:04d}")
             continue
         joiners = [utils.extend_left_non_alpha(tokens, i) for i in joiner_indices]
@@ -76,7 +70,7 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
             example = tokens[start : b[0]]
             divider_index = [i + start for i, t in enumerate(example) if t == divier_token]
             second_is_last = len(divider_index) == 2 and divider_index[1] == b[0] - 1
-            # just ignore, is bad generations
+            # just use the first, is due to bad generations
             if len(divider_index) != 1 and not second_is_last:
                 print(f"wrong number dividers {i:04d}")
                 error = True
@@ -84,7 +78,6 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
             divider_all.append(utils.extend_left_non_alpha(tokens, divider_index[0]))
         if error:
             continue
-        # print([" ".join(tokens[x] for x in i) for i in end_source_all])
 
         source_all = []
         for a, b in zip([[instruction_end]] + joiners, divider_all):
@@ -115,7 +108,6 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
             div_joiner.extend(utils.coords([divider[s][-1]], [d[-1] for d in joiners[s + 1 :]]))
             c = utils.coords(joiners[s], utils.flat(source_all + target + divider_all + joiners))
             joiner_before.extend([p for p in c if p not in joiner_joiner and p not in joiner_div])
-            # joiner_before.extend(utils.coords(joiners[s][:-1], utils.flat()))
 
         coordinates = {
             "translation": utils.coords_multi(source, target),
@@ -125,7 +117,6 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
             "induction": utils.coords_multi(target, target)
             + utils.coords_multi(source_all, source_all)
             + utils.coords(task_target, task_target),
-            # "induction task": utils.coords(task_target, task_target),
             "summarize source": utils.coords_multi(source_all, divider_all),
             "summarize example": utils.coords_multi(
                 utils.append_pointwise(divider, target), joiners
@@ -179,8 +170,7 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
                     "instruction attention": utils.coords(
                         [instruction_end],
                         utils.flat(source_all + target + divider_all + joiners) + task_target,
-                    ),  # todo decompose into task and non task?
-                    # "instruction attention task": utils.coords([instruction_end], task_target),
+                    ),
                 }
             )
             groups = {
@@ -282,17 +272,6 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
         ax1.plot(x, np.median(arr, axis=0), label=k, color=colors_dict[k], alpha=alpha1)
         ax2.plot(x, np.median(arr, axis=0), label=k, color=colors_dict[k], alpha=alpha2)
         patches.append(mpatches.Patch(color=colors_dict[k], label=k))
-        # ax2.legend([line], [k], bbox_to_anchor=(1.04, 1), loc="upper left")
-        # pretty much the same
-        # ax.plot(x, np.clip(np.average(arr, 0), 0, c), ".", color=colors[idx + 1], alpha=0.8)
-        # never anything unexpected -> dont crowd unnecessary
-        # ax.fill_between(
-        #     x,
-        #     np.quantile(arr, 0.25, axis=0),
-        #     np.quantile(arr, 0.75, axis=0),
-        #     color=colors[idx + 1],
-        #     alpha=0.1,
-        # )
     if good_name == "title arrow" or good_name == "arrow":
         b = 0.03
         ax1.set_yscale("segmented", breakpoint=b, scale_ratio=10 if good_name == "arrow" else 20)
@@ -316,20 +295,16 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
 if __name__ == "__main__":
     Path("Mistral-7B-v0.1/plots/matrix").mkdir(exist_ok=True, parents=True)
 
-    p = Path(
-        f"Mistral-7B-v0.1/attention/wmt22_de-en_04shot_wmt21_format_single_message_arrow"  # _title # _oneline
-    )
+    p = Path(f"Mistral-7B-v0.1/attention/wmt22_de-en_04shot_wmt21_format_single_message_arrow")
     calculate_average_flow_and_plot(p, 1, group_matrix=True)
     p2 = Path(
-        f"Mistral-7B-v0.1/attention/wmt22_de-en_04shot_wmt21_format_single_message_arrow_title"  # _title # _oneline
+        f"Mistral-7B-v0.1/attention/wmt22_de-en_04shot_wmt21_format_single_message_arrow_title"
     )
     calculate_average_flow_and_plot(p2, 1, group_matrix=True)
-    # exit()
     for mode in ["arrow_title", "arrow", "arrow_oneline"]:
         for lang in ["de-en", "en-de"]:
             path = Path(
-                f"Mistral-7B-v0.1/attention/wmt22_{lang}_04shot_wmt21_format_single_message_{mode}"  # _title # _oneline
+                f"Mistral-7B-v0.1/attention/wmt22_{lang}_04shot_wmt21_format_single_message_{mode}"
             )
             n = len([p for p in path.iterdir() if "max" not in p.name]) // 2
-            # print(n, path.name)
             calculate_average_flow_and_plot(path, n)
