@@ -285,7 +285,7 @@ def calculate_average_flow_and_plot(path: Path, n, puctuation_summary=False, gro
         ax2.set_yticks(ticks)
         ax1.plot(x, [b] * 32, "--", color="black")
         ax2.plot(x, [b] * 32, "--", color="black")
-    plt.title(file_name)
+    # plt.title(file_name)
     ax2.legend(handles=patches, bbox_to_anchor=(1.04, 1), loc="upper left")
     plt.tight_layout()
     plt.savefig(f"Mistral-7B-v0.1/plots/{file_name}_flow.png", dpi=300)

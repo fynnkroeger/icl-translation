@@ -134,6 +134,12 @@ prompt_names = dict(
     format_single_message_arrow="arrow",
     format_single_message_arrow_oneline="arrow oneline",
 )
+print_names = dict(
+    format_single_message_arrow_title="arrow title",
+    format_single_message_labeled="label title",
+    format_single_message_arrow="arrow",
+    format_single_message_arrow_oneline="arrow oneline",
+)
 
 if __name__ == "__main__":
     from inference import *
