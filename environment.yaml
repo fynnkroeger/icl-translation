@@ -1,0 +1,15 @@
+name: icl-translation
+channels:
+  - defaults
+dependencies:
+  - python
+  - pip
+  - pip:
+    - unbabel-comet==2.2.2
+    - sacrebleu==2.4.2
+    - transformers==4.41.2
+    - pillow==10.2.0
+    - numpy==1.26.3
+    - matplotlib==3.9.0
+    - tqdm==4.66.2
+    - transformers==4.41.2

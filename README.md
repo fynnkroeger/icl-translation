@@ -3,7 +3,12 @@
 Here is a quick rundown of the relevant files to reproduce the results:
 
 ## Installing requirements
-
+Install conda or miniconda, then run the following command. This might take some minutes due to installing pytorch.
+```
+conda env create -f environment.yaml
+conda activate icl-translation
+```
+Then you can run all the files with `python file.py`.
 
 ## download_datasets.py
 Running this file downloads the en-de, de-en, de-fr and fr-de language pairs for the wmt22 and wmt23 datasets using sacrebleu and saves them into `datasets/`.

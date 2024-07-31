@@ -65,3 +65,5 @@ if new_eval:
     with open(eval_file, "w") as f:
         sorted_evals = dict(sorted([(k, v) for k, v in eval_output.items()]))
         json.dump(sorted_evals, f, indent=1)
+else:
+    print("all evals already performed")
