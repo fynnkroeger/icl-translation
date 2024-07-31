@@ -33,9 +33,3 @@ Uses the attention matrices from above to create the main analysis line plots an
 
 ## heatmap.py
 Uses the attention matrices to compute heatmaps for exploration and visualization.
-
-## clean up?
-make_table.py
-translation_eval.sh
-contribution.py
-heatmap.py
