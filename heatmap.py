@@ -73,6 +73,7 @@ def make_image_plot_false_color(format, n_shot, index, layer, use_max=False):
 
 
 if __name__ == "__main__":
+    # create the heatmaps used in the paper after having attention maps for all the prompts in de-en
     make_image_plot_false_color("arrow_oneline", 4, 0, 17)  # translation
     make_image_plot_false_color("arrow_oneline", 4, 0, 11)  # induction
     make_image_plot_false_color("arrow_oneline", 4, 0, 26)  # special
@@ -80,6 +81,7 @@ if __name__ == "__main__":
     make_image_plot_false_color("arrow_oneline", 4, 0, 31)  # example
     make_image_plot_false_color("arrow", 4, 0, 25)  # example
 
+    make_image_plot_false_color("arrow", 4, 0, 31)  # different patterns figure
     exit()
     process_file(
         Path("Mistral-7B-v0.1/attention/wmt22_de-en_04shot_wmt21_format_single_message_arrow"),
@@ -87,10 +89,3 @@ if __name__ == "__main__":
         n_shots=2,
         use_max=False,
     )
-    exit()
-    for path in Path("Mistral-7B-v0.1/attention").iterdir():
-        print(path)
-        n_shots = int(path.name.split("_")[2][:2])
-        if n_shots == 4:
-            n_shots = 2
-        process_file(path, index=0, n_shots=n_shots)
